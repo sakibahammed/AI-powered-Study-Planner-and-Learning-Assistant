@@ -11,6 +11,13 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Dashboard UI',
+      theme: ThemeData(
+        primaryColor: Colors.purple,
+        colorScheme: ColorScheme.fromSwatch().copyWith(
+          secondary: Colors.purpleAccent,
+        ),
+        textTheme: TextTheme(bodyMedium: TextStyle(color: Colors.purple)),
+      ),
       home: DashboardScreen(),
     );
   }
