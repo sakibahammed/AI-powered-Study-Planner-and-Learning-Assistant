@@ -31,7 +31,7 @@ class _QuizScreenState extends State<QuizScreen> {
       body: SafeArea(
         child: GestureDetector(
           onTap: () {
-            _showSnackBar('Screen tapped');
+            // _showSnackBar('Screen tapped');
           },
           child: Padding(
             padding: const EdgeInsets.all(16.0),
@@ -44,7 +44,7 @@ class _QuizScreenState extends State<QuizScreen> {
                     GestureDetector(
                       onTap: () {
                         Navigator.pop(context);
-                        _showSnackBar('Back button pressed');
+                        // _showSnackBar('Back button pressed');
                       },
                       child: Container(
                         padding: EdgeInsets.all(8),
@@ -148,7 +148,7 @@ class _QuizScreenState extends State<QuizScreen> {
                                 ),
                                 GestureDetector(
                                   onTap: () {
-                                    _showSnackBar('See all answers');
+                                    // _showSnackBar('See all answers');
                                   },
                                   child: Text(
                                     'See all',
@@ -205,7 +205,7 @@ class _QuizScreenState extends State<QuizScreen> {
                                 SizedBox(height: 8),
                                 GestureDetector(
                                   onTap: () {
-                                    _showSnackBar('Retake test');
+                                    // _showSnackBar('Retake test');
                                   },
                                   child: Text(
                                     'Retake Test',
@@ -225,7 +225,7 @@ class _QuizScreenState extends State<QuizScreen> {
                           Center(
                             child: GestureDetector(
                               onTap: () {
-                                _showSnackBar('View previous tests');
+                                // _showSnackBar('View previous tests');
                               },
                               child: Text(
                                 'view previous tests',
