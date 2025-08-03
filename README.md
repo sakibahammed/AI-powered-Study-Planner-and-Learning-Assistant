@@ -1,6 +1,6 @@
 # study_ai
 
-A new Flutter project.
+AI study planner
 
 ## Getting Started
 
