@@ -26,7 +26,7 @@ class QuickActionSection extends StatelessWidget {
               'Planner',
               const PlannerScreen(),
             ),
-            actionItem(context, Icons.quiz, 'Quiz', const QuizScreen()),
+            actionItem(context, Icons.quiz, 'Quiz', QuizScreen()),
             actionItem(
               context,
               Icons.chat_bubble,

@@ -12,7 +12,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Dashboard UI',
       theme: ThemeData(
-        primaryColor: Colors.purple,
+        primaryColor: const Color.fromARGB(255, 129, 24, 148),
         colorScheme: ColorScheme.fromSwatch().copyWith(
           secondary: Colors.purpleAccent,
         ),
