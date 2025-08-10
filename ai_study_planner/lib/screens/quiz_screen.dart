@@ -49,11 +49,11 @@ class _QuizScreenState extends State<QuizScreen> {
                       child: Container(
                         padding: EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Color(0xFFFF6B6B), // Light red circle
+                          // color: Color(0xFFFF6B6B), // Light red circle
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
-                          Icons.arrow_back_ios,
+                          Icons.arrow_back,
                           color: Colors.white,
                           size: 16,
                         ),
