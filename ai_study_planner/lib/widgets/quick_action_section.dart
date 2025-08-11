@@ -6,6 +6,8 @@ import '../screens/chatbot_screen.dart';
 import '../theme/app_colors.dart';
 
 class QuickActionSection extends StatelessWidget {
+  const QuickActionSection({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Column(

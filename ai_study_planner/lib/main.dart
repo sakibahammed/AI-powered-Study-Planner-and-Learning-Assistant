@@ -1,24 +1,22 @@
-import 'package:ai_study_planner/screens/dashboard_screen.dart';
+import 'package:ai_study_planner/screens/auth_page.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
-void main() {
-  runApp(MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Dashboard UI',
-      theme: ThemeData(
-        primaryColor: const Color.fromARGB(255, 129, 24, 148),
-        colorScheme: ColorScheme.fromSwatch().copyWith(
-          secondary: Colors.purpleAccent,
-        ),
-        textTheme: TextTheme(bodyMedium: TextStyle(color: Colors.purple)),
-      ),
-      home: DashboardScreen(),
+      home: AuthPage(),
     );
   }
 }

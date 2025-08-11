@@ -8,7 +8,7 @@ class StatCard extends StatelessWidget {
   final double percentage;
   final String percentageText;
 
-  const StatCard({
+  const StatCard({super.key, 
     required this.title,
     required this.value,
     required this.subtitle,

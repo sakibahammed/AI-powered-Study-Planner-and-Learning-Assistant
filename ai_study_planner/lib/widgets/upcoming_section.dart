@@ -9,6 +9,8 @@ class UpcomingSection extends StatelessWidget {
     UpcomingTask(title: "English Assignment", due: "Due on 2 Aug"),
   ];
 
+  UpcomingSection({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Column(
