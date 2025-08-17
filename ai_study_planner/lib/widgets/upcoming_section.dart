@@ -8,13 +8,38 @@ class UpcomingSection extends StatefulWidget {
   _UpcomingSectionState createState() => _UpcomingSectionState();
 }
 
-class _UpcomingSectionState extends State<UpcomingSection> {
+class _UpcomingSectionState extends State<UpcomingSection>
+    with WidgetsBindingObserver {
   final TaskService _taskService = TaskService();
   List<Task> upcomingTasks = [];
+  List<Task> allUpcomingTasks = [];
+  bool _showAll = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _loadUpcomingTasks();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadUpcomingTasks();
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Reload tasks when dependencies change (e.g., when returning to this screen)
+    print('UpcomingSection: didChangeDependencies called');
     _loadUpcomingTasks();
   }
 
@@ -22,20 +47,38 @@ class _UpcomingSectionState extends State<UpcomingSection> {
     final allTasks = _taskService.getAllTasks();
     final now = DateTime.now();
 
-    // Get tasks that are due in the next 7 days and not completed
-    upcomingTasks = allTasks
-        .where((task) => task.dueDate.isAfter(now) && !task.isCompleted)
-        .toList();
+    // Get tasks that are due in the future and not completed
+    allUpcomingTasks = allTasks.where((task) {
+      final isNotCompleted = !task.isCompleted;
+      final isUpcoming = task.dueDate.isAfter(now);
+      return isUpcoming && isNotCompleted;
+    }).toList();
 
     // Sort by due date (earliest first)
-    upcomingTasks.sort((a, b) => a.dueDate.compareTo(b.dueDate));
+    allUpcomingTasks.sort((a, b) => a.dueDate.compareTo(b.dueDate));
 
-    // Take only the next 5 upcoming tasks
-    if (upcomingTasks.length > 5) {
-      upcomingTasks = upcomingTasks.take(5).toList();
+    // Set upcoming tasks based on show all state
+    if (_showAll) {
+      upcomingTasks = allUpcomingTasks;
+    } else {
+      // Take only the next 5 upcoming tasks
+      upcomingTasks = allUpcomingTasks.take(5).toList();
     }
 
     setState(() {});
+  }
+
+  // Public method to refresh the upcoming tasks
+  void refresh() {
+    _loadUpcomingTasks();
+  }
+
+  // Toggle show all state
+  void _toggleShowAll() {
+    setState(() {
+      _showAll = !_showAll;
+    });
+    _loadUpcomingTasks();
   }
 
   String _formatDueDate(DateTime dueDate) {
@@ -88,9 +131,43 @@ class _UpcomingSectionState extends State<UpcomingSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Upcoming',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Upcoming',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                ),
+                if (allUpcomingTasks.length > 0)
+                  Text(
+                    '${upcomingTasks.length} of ${allUpcomingTasks.length} tasks',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+              ],
+            ),
+            // Show button if more than 5 tasks
+            if (allUpcomingTasks.length > 5)
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.pink.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: TextButton(
+                  onPressed: _toggleShowAll,
+                  child: Text(
+                    _showAll ? 'Show Less' : 'Show All',
+                    style: TextStyle(
+                      color: Colors.pink,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
         const SizedBox(height: 12),
         if (upcomingTasks.isEmpty)
@@ -109,7 +186,23 @@ class _UpcomingSectionState extends State<UpcomingSection> {
             ),
           )
         else
-          ...upcomingTasks.map((task) => _buildTaskCard(task)),
+          Container(
+            constraints: BoxConstraints(
+              maxHeight: _showAll
+                  ? 500
+                  : 350, // Increased height for better visibility
+            ),
+            child: SingleChildScrollView(
+              physics: BouncingScrollPhysics(), // Better scroll physics
+              child: Column(
+                children: [
+                  ...upcomingTasks.map((task) => _buildTaskCard(task)),
+                  // Add bottom padding to prevent cropping
+                  SizedBox(height: 20),
+                ],
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -119,14 +212,7 @@ class _UpcomingSectionState extends State<UpcomingSection> {
     final isUrgent = daysUntilDue <= 3;
     final isSoon = daysUntilDue > 3 && daysUntilDue <= 7;
 
-    // Debug print to see what's happening
-    print(
-      'Task: ${task.title}, Days until due: $daysUntilDue, isUrgent: $isUrgent, isSoon: $isSoon',
-    );
-
     // Show badges for all upcoming tasks for testing
-    final testIsUrgent =
-        daysUntilDue <= 7; // Show urgent for tasks due within 7 days
     final testIsSoon =
         daysUntilDue > 7 &&
         daysUntilDue <= 14; // Show soon for tasks due in 8-14 days
@@ -134,7 +220,7 @@ class _UpcomingSectionState extends State<UpcomingSection> {
     return GestureDetector(
       onTap: () => _showTaskDetailDialog(context, task),
       child: Container(
-        margin: EdgeInsets.only(bottom: 8),
+        margin: EdgeInsets.only(bottom: 12), // Increased bottom margin
         padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,

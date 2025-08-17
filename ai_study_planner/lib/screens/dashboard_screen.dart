@@ -62,6 +62,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   void _loadTodayTasks() {
+    print('Dashboard: _loadTodayTasks called');
     setState(() {
       selectedDateTasks = _taskService.getTasksForDate(_currentSelectedDate);
     });
@@ -237,7 +238,16 @@ class _DashboardScreenState extends State<DashboardScreen>
                 icon: Icons.calendar_today,
                 label: 'Planner',
                 onTap: () => _navigateToScreen(
-                  PlannerScreen(onDateSelected: updateSelectedDate),
+                  PlannerScreen(
+                    onDateSelected: updateSelectedDate,
+                    onTaskAdded: () {
+                      print(
+                        'Dashboard: Task added callback received, refreshing...',
+                      );
+                      _loadTodayTasks();
+                      setState(() {});
+                    },
+                  ),
                 ),
               ),
               _buildNavItem(

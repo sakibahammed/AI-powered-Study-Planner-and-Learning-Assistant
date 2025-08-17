@@ -62,6 +62,9 @@ class TaskService {
   // Get all tasks
   List<Task> getAllTasks() {
     print('TaskService: Getting all tasks - ${_allTasks.length} tasks');
+    print(
+      'TaskService: Task details: ${_allTasks.map((t) => '${t.title} (${t.dueDate})').join(', ')}',
+    );
     return List.from(_allTasks);
   }
 

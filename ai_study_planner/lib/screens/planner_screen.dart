@@ -8,8 +8,9 @@ import '../widgets/edit_task_dialog.dart';
 
 class PlannerScreen extends StatefulWidget {
   final Function(DateTime)? onDateSelected;
+  final VoidCallback? onTaskAdded;
 
-  const PlannerScreen({super.key, this.onDateSelected});
+  const PlannerScreen({super.key, this.onDateSelected, this.onTaskAdded});
 
   @override
   State<PlannerScreen> createState() => _PlannerScreenState();
@@ -83,27 +84,53 @@ class _PlannerScreenState extends State<PlannerScreen>
     return _events[DateTime(day.year, day.month, day.day)] ?? [];
   }
 
-  // Calculate task statistics
+  // Calculate task statistics for the selected date
   int get _totalTasksCount {
-    return _taskService.getAllTasks().length;
+    final tasksForSelectedDay = _getEventsForDay(_selectedDay);
+    print(
+      'Planner: Total tasks for ${_selectedDay}: ${tasksForSelectedDay.length}',
+    );
+    return tasksForSelectedDay.length;
   }
 
   int get _completedTasksCount {
-    return _taskService.getAllTasks().where((task) => task.isCompleted).length;
+    final tasksForSelectedDay = _getEventsForDay(_selectedDay);
+    final completedTasks = tasksForSelectedDay
+        .where((task) => task.isCompleted)
+        .toList();
+    print(
+      'Planner: Completed tasks for ${_selectedDay}: ${completedTasks.length}',
+    );
+    print(
+      'Planner: Completed task titles: ${completedTasks.map((t) => t.title).join(', ')}',
+    );
+    return completedTasks.length;
   }
 
   int get _inProgressTasksCount {
-    return _taskService
-        .getAllTasks()
+    final tasksForSelectedDay = _getEventsForDay(_selectedDay);
+    final inProgressTasks = tasksForSelectedDay
         .where((task) => task.isStarted && !task.isCompleted)
-        .length;
+        .toList();
+    print(
+      'Planner: In progress tasks for ${_selectedDay}: ${inProgressTasks.length}',
+    );
+    print(
+      'Planner: In progress task titles: ${inProgressTasks.map((t) => t.title).join(', ')}',
+    );
+    return inProgressTasks.length;
   }
 
   int get _pendingTasksCount {
-    return _taskService
-        .getAllTasks()
+    final tasksForSelectedDay = _getEventsForDay(_selectedDay);
+    final pendingTasks = tasksForSelectedDay
         .where((task) => !task.isStarted && !task.isCompleted)
-        .length;
+        .toList();
+    print('Planner: Pending tasks for ${_selectedDay}: ${pendingTasks.length}');
+    print(
+      'Planner: Pending task titles: ${pendingTasks.map((t) => t.title).join(', ')}',
+    );
+    return pendingTasks.length;
   }
 
   @override
@@ -209,6 +236,9 @@ class _PlannerScreenState extends State<PlannerScreen>
           });
           // Notify dashboard about the selected date
           widget.onDateSelected?.call(selectedDay);
+          print(
+            'Planner: Date selected: ${selectedDay}, statistics will update',
+          );
         },
         onFormatChanged: (format) {
           setState(() {
@@ -242,51 +272,65 @@ class _PlannerScreenState extends State<PlannerScreen>
   }
 
   Widget _buildStatisticsSection() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          SizedBox(
-            width: 120, // Fixed width for each card
-            child: _buildStatCard(
-              'Total Tasks',
-              '$_totalTasksCount',
-              Icons.task,
-              Colors.blue,
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Statistics for ${DateFormat('MMM dd, yyyy').format(_selectedDay)}',
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
           ),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: 120, // Fixed width for each card
-            child: _buildStatCard(
-              'Completed',
-              '$_completedTasksCount',
-              Icons.check_circle,
-              Colors.green,
-            ),
+        ),
+        const SizedBox(height: 12),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              SizedBox(
+                width: 120, // Fixed width for each card
+                child: _buildStatCard(
+                  'Total Tasks',
+                  '$_totalTasksCount',
+                  Icons.task,
+                  Colors.blue,
+                ),
+              ),
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 120, // Fixed width for each card
+                child: _buildStatCard(
+                  'Completed',
+                  '$_completedTasksCount',
+                  Icons.check_circle,
+                  Colors.green,
+                ),
+              ),
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 120, // Fixed width for each card
+                child: _buildStatCard(
+                  'In Progress',
+                  '$_inProgressTasksCount',
+                  Icons.play_circle,
+                  Colors.purple,
+                ),
+              ),
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 120, // Fixed width for each card
+                child: _buildStatCard(
+                  'Pending',
+                  '$_pendingTasksCount',
+                  Icons.pending,
+                  Colors.orange,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: 120, // Fixed width for each card
-            child: _buildStatCard(
-              'In Progress',
-              '$_inProgressTasksCount',
-              Icons.play_circle,
-              Colors.purple,
-            ),
-          ),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: 120, // Fixed width for each card
-            child: _buildStatCard(
-              'Pending',
-              '$_pendingTasksCount',
-              Icons.pending,
-              Colors.orange,
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -639,6 +683,8 @@ class _PlannerScreenState extends State<PlannerScreen>
     await _taskService.updateTask(updatedTask);
     _loadTasks(); // Reload tasks from service
     setState(() {});
+    // Notify parent that a task was updated
+    widget.onTaskAdded?.call();
   }
 
   void _deleteTask(Task task) async {
@@ -677,6 +723,8 @@ class _PlannerScreenState extends State<PlannerScreen>
           duration: Duration(seconds: 2),
         ),
       );
+      // Notify parent that a task was deleted
+      widget.onTaskAdded?.call();
     }
   }
 
@@ -690,11 +738,15 @@ class _PlannerScreenState extends State<PlannerScreen>
           await _taskService.updateTaskStartStatus(taskId, isStarted);
           _loadTasks();
           setState(() {});
+          // Notify parent that a task was updated
+          widget.onTaskAdded?.call();
         },
         onTaskCompleted: (taskId, isCompleted) async {
           await _taskService.updateTaskCompletion(taskId, isCompleted);
           _loadTasks();
           setState(() {});
+          // Notify parent that a task was updated
+          widget.onTaskAdded?.call();
         },
         onTaskDeleted: (taskId) async {
           await _taskService.removeTask(taskId);
@@ -709,6 +761,8 @@ class _PlannerScreenState extends State<PlannerScreen>
               duration: Duration(seconds: 2),
             ),
           );
+          // Notify parent that a task was deleted
+          widget.onTaskAdded?.call();
         },
       ),
     );
@@ -724,6 +778,8 @@ class _PlannerScreenState extends State<PlannerScreen>
       await _taskService.addTask(result);
       _loadTasks(); // Reload tasks from service
       setState(() {});
+      // Notify parent that a task was added
+      widget.onTaskAdded?.call();
     }
   }
 }
