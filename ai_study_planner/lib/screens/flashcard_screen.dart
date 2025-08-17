@@ -1,290 +1,249 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-
 import '../models/flashcard.dart';
 import 'flashcard_detail.dart';
 
-class FlashcardPage extends StatefulWidget {
-  const FlashcardPage({super.key});
-
-  @override
-  State<FlashcardPage> createState() => _FlashcardPageState();
-}
-
-class _FlashcardPageState extends State<FlashcardPage> {
-  Future<String> _ensureUid() async {
-    final auth = FirebaseAuth.instance;
-    User? u = auth.currentUser;
-    if (u == null) {
-      final cred = await auth.signInAnonymously();
-      u = cred.user;
-    }
-    return u!.uid;
-  }
-
-  Stream<List<Flashcard>> _flashcardsStream() async* {
-    final uid = await _ensureUid();
-    final col = FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('flashcards')
-        .orderBy('createdAt', descending: true);
-
-    yield* col.snapshots().map(
-          (snap) => snap.docs.map((d) => Flashcard.fromFirestore(d)).toList(),
-        );
-  }
-
-  Future<void> _addFlashcard() async {
-    final uid = await _ensureUid();
-
-    final subjectCtrl = TextEditingController();
-    final titleCtrl = TextEditingController();
-    final qCtrl = TextEditingController();
-    final aCtrl = TextEditingController();
-
-    await showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('New Flashcard'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: subjectCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Subject',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: titleCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Title',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  const Text('Add first Q/A (optional)'),
-                ],
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: qCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Question',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: aCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Answer',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final subject = subjectCtrl.text.trim();
-              final title = titleCtrl.text.trim();
-              if (subject.isEmpty || title.isEmpty) return;
-
-              final col = FirebaseFirestore.instance
-                  .collection('users')
-                  .doc(uid)
-                  .collection('flashcards');
-
-              final doc = col.doc();
-              final List<Map<String, dynamic>> initialContent = [];
-              if (qCtrl.text.trim().isNotEmpty || aCtrl.text.trim().isNotEmpty) {
-                initialContent.add({
-                  'question': qCtrl.text.trim(),
-                  'answer': aCtrl.text.trim(),
-                });
-              }
-
-              await doc.set({
-                'subject': subject,
-                'title': title,
-                'content': initialContent,
-                'createdAt': FieldValue.serverTimestamp(),
-              });
-
-              if (mounted) Navigator.pop(ctx);
-            },
-            child: const Text('Create'),
-          ),
-        ],
-      ),
-    );
-  }
+class FlashcardPage extends StatelessWidget {
+  final List<Flashcard> flashcards = [
+    Flashcard(
+      id: '1',
+      subject: 'Programming',
+      title: 'Fundamentals of Computer Science',
+      content: [
+        {'question': 'What is a variable?', 'answer': 'A container for data.'},
+        {
+          'question': 'What is a function?',
+          'answer': 'Reusable block of code.',
+        },
+      ],
+    ),
+    Flashcard(
+      id: '2',
+      subject: 'English',
+      title: 'The Life of Shakespeare',
+      content: [
+        {'question': 'Who is Shakespeare?', 'answer': 'A famous playwright.'},
+      ],
+    ),
+    Flashcard(
+      id: '3',
+      subject: 'Math',
+      title: 'Trigonometry',
+      content: [
+        {'question': 'What is sin(90°)?', 'answer': '1'},
+      ],
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Color(0xFFF6EAD8), // Light cream background
       appBar: AppBar(
-        title: const Text('Flashcard'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
+        title: Text(
+          'Flashcard',
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _addFlashcard,
-        child: const Icon(Icons.add),
-      ),
-      body: StreamBuilder<List<Flashcard>>(
-        stream: _flashcardsStream(),
-        builder: (context, snap) {
-          if (snap.connectionState == ConnectionState.waiting) {
-            return const LinearProgressIndicator(minHeight: 2);
-          }
-          final items = snap.data ?? [];
-
-          return Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Your Flashcards',
-                        style: TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 16),
-                    if (items.isEmpty)
-                      const Text('No flashcards yet. Tap + to create one.')
-                    else
-                      ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: items.length,
-                        itemBuilder: (context, index) {
-                          final flashcard = items[index];
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Your Flashcards Section
+            Padding(
+              padding: EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Your Flashcards',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[800],
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: NeverScrollableScrollPhysics(),
+                    itemCount: flashcards.length,
+                    itemBuilder: (context, index) {
+                      final flashcard = flashcards[index];
+                      return Container(
+                        margin: EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 5,
+                              offset: Offset(0, 2),
                             ),
-                            child: ListTile(
-                              title: Text(
+                          ],
+                        ),
+                        child: Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
                                 flashcard.subject,
-                                style: const TextStyle(
-                                  color: Color.fromARGB(255, 181, 88, 23),
+                                style: TextStyle(
+                                  color: Color(
+                                    0xFFC33977,
+                                  ), // Reddish-pink color
                                   fontWeight: FontWeight.bold,
+                                  fontSize: 16,
                                 ),
                               ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(flashcard.title),
-                                  TextButton(
-                                    onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => FlashcardDetailPage(
-                                            flashcardId: flashcard.id,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                    child: const Text("Read more"),
-                                  ),
-                                ],
+                              SizedBox(height: 4),
+                              Text(
+                                flashcard.title,
+                                style: TextStyle(
+                                  color: Colors.grey[700],
+                                  fontSize: 14,
+                                ),
                               ),
-                              trailing: IconButton(
-                                icon: const Icon(Icons.delete_outline),
-                                onPressed: () async {
-                                  final uid = await _ensureUid();
-                                  await FirebaseFirestore.instance
-                                      .collection('users')
-                                      .doc(uid)
-                                      .collection('flashcards')
-                                      .doc(flashcard.id)
-                                      .delete();
+                              SizedBox(height: 8),
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => FlashcardDetailPage(
+                                        flashcard: flashcard,
+                                      ),
+                                    ),
+                                  );
                                 },
+                                child: Text(
+                                  'Read more',
+                                  style: TextStyle(
+                                    color: Colors.grey[500],
+                                    fontSize: 14,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                ),
                               ),
-                            ),
-                          );
-                        },
-                      ),
-                    Center(
-                      child: TextButton(
-                        onPressed: () {
-                          // Navigate to "All flashcards" if you later add pagination/filter
-                        },
-                        child: const Text(
-                          'See all flashcards',
-                          style: TextStyle(
-                            color: Colors.grey,
-                            decoration: TextDecoration.underline,
+                            ],
                           ),
                         ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade200,
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(16)),
-                ),
-                child: Column(
-                  children: [
-                    const Text('Generate your flashcard',
+                      );
+                    },
+                  ),
+                  Center(
+                    child: TextButton(
+                      onPressed: () {
+                        // Navigate to all flashcards screen
+                      },
+                      child: Text(
+                        'See all flashcards',
                         style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 16),
-                    TextField(
-                      decoration: InputDecoration(
-                        hintText: 'Enter your topic (UI only)',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          color: Colors.grey[600],
+                          decoration: TextDecoration.underline,
+                          fontSize: 14,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    const Text('or'),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
+                  ),
+                ],
+              ),
+            ),
+
+            // Generate Flashcard Section
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Generate your flashcard',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[800],
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Enter your topic',
+                      hintStyle: TextStyle(color: Colors.grey[400]),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Color(0xFFC33977)),
+                      ),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  Center(
+                    child: Text(
+                      'or',
+                      style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    child: ElevatedButton(
                       onPressed: () {
-                        // Handle PDF upload if you plan to parse → then save to Firestore
+                        // Handle PDF upload
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            const Color.fromARGB(255, 195, 104, 12),
+                        backgroundColor: Color(
+                          0xFFC33977,
+                        ), // Reddish-pink color
+                        padding: EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: Text(
+                        'Upload a PDF file',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
                         ),
                       ),
-                      child: const Text('Upload a PDF file',
-                          style: TextStyle(color: Colors.white)),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
-          );
-        },
+            ),
+          ],
+        ),
       ),
     );
   }

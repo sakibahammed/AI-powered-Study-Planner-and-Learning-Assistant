@@ -6,7 +6,14 @@ import '../screens/chatbot_screen.dart';
 import '../theme/app_colors.dart';
 
 class QuickActionSection extends StatelessWidget {
-  const QuickActionSection({super.key});
+  final VoidCallback? onPlannerReturn;
+  final Function(DateTime)? onDateSelected;
+
+  const QuickActionSection({
+    Key? key,
+    this.onPlannerReturn,
+    this.onDateSelected,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +33,8 @@ class QuickActionSection extends StatelessWidget {
               context,
               Icons.calendar_today,
               'Planner',
-              const PlannerScreen(),
+              PlannerScreen(onDateSelected: onDateSelected),
+              onReturn: onPlannerReturn,
             ),
             actionItem(context, Icons.quiz, 'Quiz', QuizScreen()),
             actionItem(
@@ -45,11 +53,20 @@ class QuickActionSection extends StatelessWidget {
     BuildContext context,
     IconData icon,
     String label,
-    Widget screen,
-  ) {
+    Widget screen, {
+    VoidCallback? onReturn,
+  }) {
     return GestureDetector(
-      onTap: () =>
-          Navigator.push(context, MaterialPageRoute(builder: (_) => screen)),
+      onTap: () async {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => screen),
+        );
+        // Call the callback when returning from the screen
+        if (onReturn != null) {
+          onReturn();
+        }
+      },
       child: Column(
         children: [
           CircleAvatar(

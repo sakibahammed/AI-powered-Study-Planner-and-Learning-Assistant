@@ -1,163 +1,176 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 import '../theme/app_colors.dart';
-import '../models/task.dart'; // Ensure Task can map to/from Firestore (see note below)
+import '../models/task.dart';
+import '../services/task_service.dart';
+import '../widgets/edit_task_dialog.dart';
 
 class PlannerScreen extends StatefulWidget {
-  const PlannerScreen({super.key});
+  final Function(DateTime)? onDateSelected;
+
+  const PlannerScreen({super.key, this.onDateSelected});
 
   @override
   State<PlannerScreen> createState() => _PlannerScreenState();
 }
 
-class _PlannerScreenState extends State<PlannerScreen> {
+class _PlannerScreenState extends State<PlannerScreen>
+    with WidgetsBindingObserver {
   late DateTime _focusedDay;
   late DateTime _selectedDay;
   late CalendarFormat _calendarFormat;
-
-  // Local cache of events for TableCalendar eventLoader
   Map<DateTime, List<Task>> _events = {};
+  final TaskService _taskService = TaskService();
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _focusedDay = DateTime.now();
     _selectedDay = DateTime.now();
-    _calendarFormat = CalendarFormat.month;
+    _calendarFormat = CalendarFormat.week;
+    _loadTasks();
   }
 
-  String get _uid => FirebaseAuth.instance.currentUser!.uid;
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
 
-  /// Month range helpers (inclusive start, exclusive end)
-  DateTime _monthStart(DateTime any) => DateTime(any.year, any.month, 1);
-  DateTime _monthEnd(DateTime any) =>
-      DateTime(any.year, any.month + 1, 1); // exclusive
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadTasks(); // Refresh when app resumes
+    }
+  }
 
-  Stream<List<Task>> _tasksStreamForMonth(DateTime monthCenter) {
-    final start = _monthStart(monthCenter);
-    final end = _monthEnd(monthCenter);
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Refresh when returning to this screen
+    _loadTasks();
+  }
 
-    return FirebaseFirestore.instance
-        .collection('users')
-        .doc(_uid)
-        .collection('tasks')
-        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
-        .where('date', isLessThan: Timestamp.fromDate(end))
-        .snapshots()
-        .map((snap) => snap.docs.map((d) => Task.fromFirestore(d)).toList());
+  void _loadTasks() {
+    // Load existing tasks from service
+    final allTasks = _taskService.getAllTasks();
+    _events = {};
+
+    for (final task in allTasks) {
+      final dayKey = DateTime(
+        task.dueDate.year,
+        task.dueDate.month,
+        task.dueDate.day,
+      );
+      if (_events[dayKey] == null) {
+        _events[dayKey] = [];
+      }
+      _events[dayKey]!.add(task);
+    }
+    setState(() {}); // Refresh UI to update statistics
+  }
+
+  // Refresh statistics specifically
+  void _refreshStatistics() {
+    setState(() {
+      // Force rebuild to update statistics
+    });
   }
 
   List<Task> _getEventsForDay(DateTime day) {
-    final key = DateTime(day.year, day.month, day.day);
-    return _events[key] ?? [];
+    return _events[DateTime(day.year, day.month, day.day)] ?? [];
   }
 
-  // Build a map<DateOnly, List<Task>> for calendar markers & daily list
-  Map<DateTime, List<Task>> _groupByDay(List<Task> tasks) {
-    final map = <DateTime, List<Task>>{};
-    for (final t in tasks) {
-      final dt = DateTime(t.date.year, t.date.month, t.date.day);
-      map.putIfAbsent(dt, () => []).add(t);
-    }
-    return map;
+  // Calculate task statistics
+  int get _totalTasksCount {
+    return _taskService.getAllTasks().length;
   }
 
-  // Quick stats from current month snapshot
-  ({int total, int completed, int pending}) _stats(List<Task> tasks) {
-    final total = tasks.length;
-    final completed = tasks.where((t) => t.isCompleted).length;
-    final pending = total - completed;
-    return (total: total, completed: completed, pending: pending);
+  int get _completedTasksCount {
+    return _taskService.getAllTasks().where((task) => task.isCompleted).length;
   }
 
-  // Weekly progress: completed count per weekday (Mon..Sun = 0..6)
-  List<FlSpot> _weeklyProgress(List<Task> tasks) {
-    // Use current week (Mon..Sun) around _focusedDay
-    final now = _focusedDay;
-    final monday = now.subtract(Duration(days: (now.weekday + 6) % 7)); // Mon
-    final counts = List<int>.filled(7, 0);
+  int get _inProgressTasksCount {
+    return _taskService
+        .getAllTasks()
+        .where((task) => task.isStarted && !task.isCompleted)
+        .length;
+  }
 
-    for (final t in tasks) {
-      final d = DateTime(t.date.year, t.date.month, t.date.day);
-      if (d.isAfter(monday.subtract(const Duration(days: 1))) &&
-          d.isBefore(monday.add(const Duration(days: 7)))) {
-        final idx = (d.weekday + 6) % 7; // Mon=0..Sun=6
-        if (t.isCompleted) counts[idx] += 1;
-      }
-    }
-
-    return List<FlSpot>.generate(7, (i) => FlSpot(i.toDouble(), counts[i].toDouble()));
+  int get _pendingTasksCount {
+    return _taskService
+        .getAllTasks()
+        .where((task) => !task.isStarted && !task.isCompleted)
+        .length;
   }
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<List<Task>>(
-      stream: _tasksStreamForMonth(_focusedDay),
-      builder: (context, snap) {
-        final tasks = snap.data ?? [];
-
-        // Update event map for the calendar
-        _events = _groupByDay(tasks);
-
-        final s = _stats(tasks);
-        final weeklySpots = _weeklyProgress(tasks);
-
-        return Scaffold(
-          backgroundColor: AppColors.background,
-          body: SafeArea(
-            child: Column(
-              children: [
-                _buildHeader(),
-                if (snap.connectionState == ConnectionState.waiting)
-                  const LinearProgressIndicator(minHeight: 2),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildCalendar(),
-                        const SizedBox(height: 24),
-                        _buildStatisticsSection(total: s.total, completed: s.completed, pending: s.pending),
-                        const SizedBox(height: 24),
-                        _buildTasksSection(_getEventsForDay(_selectedDay)),
-                        const SizedBox(height: 24),
-                        _buildProgressChart(weeklySpots),
-                      ],
-                    ),
-                  ),
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildCalendar(),
+                    const SizedBox(height: 24),
+                    _buildStatisticsSection(),
+                    const SizedBox(height: 24),
+                    _buildTasksSection(),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
-          floatingActionButton: FloatingActionButton(
-            onPressed: () => _showAddTaskDialog(context),
-            backgroundColor: Colors.pink,
-            child: const Icon(Icons.add, color: Colors.white),
-          ),
-        );
-      },
+          ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showAddTaskDialog(context),
+        backgroundColor: Colors.pink,
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
     );
   }
 
   Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.all(16),
+      // decoration: BoxDecoration(
+      //   gradient: LinearGradient(
+      //     colors: AppColors.primaryGradient,
+      //     begin: Alignment.topLeft,
+      //     end: Alignment.bottomRight,
+      //   ),
+      //   borderRadius: const BorderRadius.only(
+      //     bottomLeft: Radius.circular(24),
+      //     bottomRight: Radius.circular(24),
+      //   ),
+      // ),
       child: Row(
         children: [
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.arrow_back, color: Color.fromARGB(255, 0, 0, 0)),
+            icon: const Icon(
+              Icons.arrow_back,
+              color: Color.fromARGB(255, 0, 0, 0),
+            ),
           ),
           const SizedBox(width: 8),
           const Text(
             'Study Planner',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color.fromARGB(255, 18, 1, 1)),
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Color.fromARGB(255, 18, 1, 1),
+            ),
           ),
           const Spacer(),
           IconButton(
@@ -172,8 +185,15 @@ class _PlannerScreenState extends State<PlannerScreen> {
   Widget _buildCalendar() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white, borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, 4))],
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: TableCalendar(
         firstDay: DateTime.utc(2020, 1, 1),
@@ -187,71 +207,183 @@ class _PlannerScreenState extends State<PlannerScreen> {
             _selectedDay = selectedDay;
             _focusedDay = focusedDay;
           });
+          // Notify dashboard about the selected date
+          widget.onDateSelected?.call(selectedDay);
         },
-        onFormatChanged: (format) => setState(() => _calendarFormat = format),
-        onPageChanged: (focusedDay) => setState(() => _focusedDay = focusedDay),
+        onFormatChanged: (format) {
+          setState(() {
+            _calendarFormat = format;
+          });
+        },
+        onPageChanged: (focusedDay) {
+          _focusedDay = focusedDay;
+        },
         calendarStyle: const CalendarStyle(
-          selectedDecoration: BoxDecoration(color: Colors.pink, shape: BoxShape.circle),
-          todayDecoration: BoxDecoration(color: Colors.orange, shape: BoxShape.circle),
-          markerDecoration: BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+          selectedDecoration: BoxDecoration(
+            color: Colors.pink,
+            shape: BoxShape.circle,
+          ),
+          todayDecoration: BoxDecoration(
+            color: Colors.orange,
+            shape: BoxShape.circle,
+          ),
+          markerDecoration: BoxDecoration(
+            color: Colors.red,
+            shape: BoxShape.circle,
+          ),
         ),
-        headerStyle: const HeaderStyle(formatButtonVisible: true, titleCentered: true, formatButtonShowsNext: false),
+        headerStyle: const HeaderStyle(
+          formatButtonVisible: true,
+          titleCentered: true,
+          formatButtonShowsNext: false,
+        ),
       ),
     );
   }
 
-  Widget _buildStatisticsSection({required int total, required int completed, required int pending}) {
-    return Row(
-      children: [
-        Expanded(child: _buildStatCard('Total Tasks', '$total', Icons.task, Colors.blue)),
-        const SizedBox(width: 12),
-        Expanded(child: _buildStatCard('Completed', '$completed', Icons.check_circle, Colors.green)),
-        const SizedBox(width: 12),
-        Expanded(child: _buildStatCard('Pending', '$pending', Icons.pending, Colors.orange)),
-      ],
-    );
-  }
-
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white, borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8, offset: const Offset(0, 2))],
-      ),
-      child: Column(
+  Widget _buildStatisticsSection() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
         children: [
-          Icon(icon, color: color, size: 32),
-          const SizedBox(height: 8),
-          Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black87)),
-          Text(title, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+          SizedBox(
+            width: 120, // Fixed width for each card
+            child: _buildStatCard(
+              'Total Tasks',
+              '$_totalTasksCount',
+              Icons.task,
+              Colors.blue,
+            ),
+          ),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: 120, // Fixed width for each card
+            child: _buildStatCard(
+              'Completed',
+              '$_completedTasksCount',
+              Icons.check_circle,
+              Colors.green,
+            ),
+          ),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: 120, // Fixed width for each card
+            child: _buildStatCard(
+              'In Progress',
+              '$_inProgressTasksCount',
+              Icons.play_circle,
+              Colors.purple,
+            ),
+          ),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: 120, // Fixed width for each card
+            child: _buildStatCard(
+              'Pending',
+              '$_pendingTasksCount',
+              Icons.pending,
+              Colors.orange,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildTasksSection(List<Task> selectedDayEvents) {
+  Widget _buildStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
+    return Container(
+      height: 110, // Reduced height to prevent overflow
+      width: 120, // Fixed width
+      padding: const EdgeInsets.all(12), // Reduced padding
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: color, size: 28), // Slightly smaller icon
+          const SizedBox(height: 6), // Reduced spacing
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 20, // Smaller font size
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4), // Small gap
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 11, // Smaller font size
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 2, // Allow 2 lines if needed
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTasksSection() {
+    final selectedDayEvents = _getEventsForDay(_selectedDay);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text(
-            'Tasks for ${DateFormat('MMM dd, yyyy').format(_selectedDay)}',
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
-          ),
-          TextButton(onPressed: () => _showAddTaskDialog(context), child: const Text('Add Task')),
-        ]),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Tasks for ${DateFormat('MMM dd, yyyy').format(_selectedDay)}',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            TextButton(
+              onPressed: () => _showAddTaskDialog(context),
+              child: const Text('Add Task'),
+            ),
+          ],
+        ),
         const SizedBox(height: 12),
         if (selectedDayEvents.isEmpty)
           Container(
             padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: const Center(
-              child: Column(children: [
-                Icon(Icons.event_busy, size: 48, color: Colors.grey),
-                SizedBox(height: 8),
-                Text('No tasks for this day', style: TextStyle(color: Colors.grey)),
-              ]),
+              child: Column(
+                children: [
+                  Icon(Icons.event_busy, size: 48, color: Colors.grey),
+                  SizedBox(height: 8),
+                  Text(
+                    'No tasks for this day',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ],
+              ),
             ),
           )
         else
@@ -262,80 +394,145 @@ class _PlannerScreenState extends State<PlannerScreen> {
 
   Widget _buildTaskCard(Task task) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white, borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4, offset: const Offset(0, 2))],
-      ),
-      child: Row(
-        children: [
-          Container(width: 12, height: 12, decoration: BoxDecoration(color: _getPriorityColor(task.priority), shape: BoxShape.circle)),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(task.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-              if (task.description.isNotEmpty)
-                Text(task.description, style: TextStyle(fontSize: 14, color: Colors.grey[600])),
-            ]),
-          ),
-          IconButton(
-            onPressed: () => _toggleTaskCompletion(task),
-            icon: Icon(task.isCompleted ? Icons.check_circle : Icons.circle_outlined,
-                color: task.isCompleted ? Colors.green : Colors.grey),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildProgressChart(List<FlSpot> spots) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white, borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, 4))],
-      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Weekly Progress', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 200,
-            child: LineChart(
-              LineChartData(
-                gridData: FlGridData(show: false),
-                titlesData: FlTitlesData(
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(showTitles: true, reservedSize: 40, interval: 1),
+          // Task header with status
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: _getTaskStatusColor(task).withOpacity(0.1),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: _getTaskStatusColor(task),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 30,
-                      getTitlesWidget: (value, meta) {
-                        const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-                        final i = value.toInt();
-                        return (i >= 0 && i < days.length) ? Text(days[i]) : const Text('');
-                      },
-                    ),
+                  child: Icon(
+                    _getTaskStatusIcon(task),
+                    color: Colors.white,
+                    size: 16,
                   ),
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                 ),
-                borderData: FlBorderData(show: false),
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: spots,
-                    isCurved: true,
-                    color: Colors.pink,
-                    barWidth: 3,
-                    dotData: FlDotData(show: true),
-                    belowBarData: BarAreaData(show: true, color: Colors.pink.withValues(alpha: 0.1)),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        task.title,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _getCategoryColor(task.category),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              task.category,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            _getTaskStatusText(task),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: _getTaskStatusColor(task),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                ],
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      onPressed: () => _showEditTaskDialog(task),
+                      icon: Icon(Icons.edit, color: Colors.grey[600]),
+                      tooltip: 'Edit Task',
+                    ),
+                    IconButton(
+                      onPressed: () => _deleteTask(task),
+                      icon: Icon(Icons.delete, color: Colors.red[400]),
+                      tooltip: 'Delete Task',
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          // Task description
+          if (task.description.isNotEmpty)
+            Container(
+              padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Text(
+                task.description,
+                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
               ),
+            ),
+          // Action buttons
+          Container(
+            padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _buildActionButton(
+                    text: task.isStarted ? 'Started' : 'Start',
+                    icon: Icons.play_arrow,
+                    color: Colors.blue,
+                    isActive: task.isStarted,
+                    onPressed: (task.isStarted || task.isCompleted)
+                        ? null
+                        : () => _toggleTaskStart(task),
+                  ),
+                ),
+                SizedBox(width: 12),
+                Expanded(
+                  child: _buildActionButton(
+                    text: task.isCompleted ? 'Completed' : 'Complete',
+                    icon: Icons.check,
+                    color: Colors.green,
+                    isActive: task.isCompleted,
+                    onPressed: (!task.isStarted || task.isCompleted)
+                        ? null
+                        : () => _toggleTaskCompletion(task),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -343,62 +540,198 @@ class _PlannerScreenState extends State<PlannerScreen> {
     );
   }
 
-  Color _getPriorityColor(TaskPriority priority) {
-    switch (priority) {
-      case TaskPriority.high:
-        return Colors.red;
-      case TaskPriority.medium:
+  Widget _buildActionButton({
+    required String text,
+    required IconData icon,
+    required Color color,
+    required bool isActive,
+    VoidCallback? onPressed,
+  }) {
+    final isDisabled = onPressed == null;
+
+    return Container(
+      height: 40,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: isActive
+              ? color
+              : (isDisabled ? color.withOpacity(0.3) : color.withOpacity(0.1)),
+          foregroundColor: isActive
+              ? Colors.white
+              : (isDisabled ? color.withOpacity(0.6) : color.withOpacity(0.8)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          elevation: 0,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 16),
+            SizedBox(width: 4),
+            Text(
+              text,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: isActive
+                    ? Colors.white
+                    : (isDisabled
+                          ? color.withOpacity(0.6)
+                          : color.withOpacity(0.8)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _getTaskStatusColor(Task task) {
+    if (task.isCompleted) return Colors.green;
+    if (task.isStarted) return Colors.blue;
+    return Colors.orange;
+  }
+
+  IconData _getTaskStatusIcon(Task task) {
+    if (task.isCompleted) return Icons.check_circle;
+    if (task.isStarted) return Icons.play_circle;
+    return Icons.schedule;
+  }
+
+  String _getTaskStatusText(Task task) {
+    if (task.isCompleted) return 'Completed';
+    if (task.isStarted) return 'In Progress';
+    return 'Pending';
+  }
+
+  Color _getCategoryColor(String category) {
+    switch (category) {
+      case 'Study':
+        return Colors.blue;
+      case 'Project':
         return Colors.orange;
-      case TaskPriority.low:
+      case 'Health':
         return Colors.green;
+      case 'Personal':
+        return Colors.purple;
+      case 'Errands':
+        return Colors.red;
+      case 'Planning':
+        return Colors.teal;
+      default:
+        return Colors.grey;
     }
   }
 
-  Future<void> _toggleTaskCompletion(Task task) async {
-    // Update in Firestore; the stream will refresh UI
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(_uid)
-        .collection('tasks')
-        .doc(task.id)
-        .update({'isCompleted': !task.isCompleted});
+  void _toggleTaskCompletion(Task task) async {
+    await _taskService.updateTaskCompletion(task.id, !task.isCompleted);
+    _loadTasks(); // Reload tasks from service
+    setState(() {});
   }
 
-  Future<void> _showAddTaskDialog(BuildContext context) async {
-    await showDialog<void>(
+  void _toggleTaskStart(Task task) async {
+    await _taskService.updateTaskStartStatus(task.id, !task.isStarted);
+    _loadTasks(); // Reload tasks from service
+    setState(() {});
+  }
+
+  void _updateTask(Task updatedTask) async {
+    await _taskService.updateTask(updatedTask);
+    _loadTasks(); // Reload tasks from service
+    setState(() {});
+  }
+
+  void _deleteTask(Task task) async {
+    // Show confirmation dialog
+    final shouldDelete = await showDialog<bool>(
       context: context,
-      builder: (context) => AddTaskDialog(
-        selectedDate: _selectedDay,
-        onSubmit: (title, description, priority) async {
-          final doc = FirebaseFirestore.instance
-              .collection('users')
-              .doc(_uid)
-              .collection('tasks')
-              .doc();
-          await doc.set({
-            'title': title,
-            'description': description,
-            'priority': priority.name, // store as string
-            'date': Timestamp.fromDate(DateTime(
-              _selectedDay.year,
-              _selectedDay.month,
-              _selectedDay.day,
-              12, // noon to avoid DST edge cases
-            )),
-            'isCompleted': false,
-            'createdAt': FieldValue.serverTimestamp(),
-          });
+      builder: (context) => AlertDialog(
+        title: Text('Delete Task'),
+        content: Text(
+          'Are you sure you want to delete "${task.title}"? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete == true) {
+      await _taskService.removeTask(task.id);
+      _loadTasks(); // Reload tasks from service
+      setState(() {});
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Task "${task.title}" deleted successfully'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  void _showEditTaskDialog(Task task) {
+    showDialog(
+      context: context,
+      builder: (context) => EditTaskDialog(
+        task: task,
+        onTaskUpdated: _updateTask,
+        onTaskStarted: (taskId, isStarted) async {
+          await _taskService.updateTaskStartStatus(taskId, isStarted);
+          _loadTasks();
+          setState(() {});
+        },
+        onTaskCompleted: (taskId, isCompleted) async {
+          await _taskService.updateTaskCompletion(taskId, isCompleted);
+          _loadTasks();
+          setState(() {});
+        },
+        onTaskDeleted: (taskId) async {
+          await _taskService.removeTask(taskId);
+          _loadTasks();
+          setState(() {});
+
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Task deleted successfully'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
         },
       ),
     );
+  }
+
+  void _showAddTaskDialog(BuildContext context) async {
+    final result = await showDialog<Task>(
+      context: context,
+      builder: (context) => AddTaskDialog(selectedDate: _selectedDay),
+    );
+
+    if (result != null) {
+      await _taskService.addTask(result);
+      _loadTasks(); // Reload tasks from service
+      setState(() {});
+    }
   }
 }
 
 class AddTaskDialog extends StatefulWidget {
   final DateTime selectedDate;
-  final Future<void> Function(String title, String description, TaskPriority priority) onSubmit;
 
-  const AddTaskDialog({super.key, required this.selectedDate, required this.onSubmit});
+  const AddTaskDialog({super.key, required this.selectedDate});
 
   @override
   State<AddTaskDialog> createState() => _AddTaskDialogState();
@@ -407,9 +740,8 @@ class AddTaskDialog extends StatefulWidget {
 class _AddTaskDialogState extends State<AddTaskDialog> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
-  TaskPriority _selectedPriority = TaskPriority.medium;
+  String _selectedCategory = 'Study';
   String? _errorMessage;
-  bool _saving = false;
 
   @override
   Widget build(BuildContext context) {
@@ -420,8 +752,12 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
         children: [
           TextField(
             controller: _titleController,
-            onChanged: (_) {
-              if (_errorMessage != null) setState(() => _errorMessage = null);
+            onChanged: (value) {
+              if (_errorMessage != null) {
+                setState(() {
+                  _errorMessage = null;
+                });
+              }
             },
             decoration: InputDecoration(
               labelText: 'Task Title',
@@ -439,36 +775,57 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
             maxLines: 2,
           ),
           const SizedBox(height: 16),
-          DropdownButtonFormField<TaskPriority>(
-            value: _selectedPriority,
-            decoration: const InputDecoration(labelText: 'Priority', border: OutlineInputBorder()),
-            items: TaskPriority.values
-                .map((p) => DropdownMenuItem(value: p, child: Text(p.name.toUpperCase())))
-                .toList(),
-            onChanged: (value) => setState(() => _selectedPriority = value!),
+          DropdownButtonFormField<String>(
+            value: _selectedCategory,
+            decoration: const InputDecoration(
+              labelText: 'Category',
+              border: OutlineInputBorder(),
+            ),
+            items:
+                [
+                  'Study',
+                  'Project',
+                  'Health',
+                  'Personal',
+                  'Errands',
+                  'Planning',
+                ].map((category) {
+                  return DropdownMenuItem(
+                    value: category,
+                    child: Text(category),
+                  );
+                }).toList(),
+            onChanged: (value) {
+              setState(() {
+                _selectedCategory = value!;
+              });
+            },
           ),
         ],
       ),
       actions: [
-        TextButton(onPressed: _saving ? null : () => Navigator.pop(context), child: const Text('Cancel')),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
         ElevatedButton(
-          onPressed: _saving
-              ? null
-              : () async {
-                  final title = _titleController.text.trim();
-                  if (title.isEmpty) {
-                    setState(() => _errorMessage = 'Task title is required');
-                    return;
-                  }
-                  setState(() => _saving = true);
-                  try {
-                    await widget.onSubmit(title, _descriptionController.text.trim(), _selectedPriority);
-                    if (context.mounted) Navigator.pop(context);
-                  } finally {
-                    if (mounted) setState(() => _saving = false);
-                  }
-                },
-          child: _saving ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Add Task'),
+          onPressed: () {
+            if (_titleController.text.trim().isNotEmpty) {
+              final task = Task(
+                id: DateTime.now().millisecondsSinceEpoch.toString(),
+                title: _titleController.text.trim(),
+                description: _descriptionController.text.trim(),
+                dueDate: widget.selectedDate,
+                category: _selectedCategory,
+              );
+              Navigator.pop(context, task);
+            } else {
+              setState(() {
+                _errorMessage = 'Task title is required';
+              });
+            }
+          },
+          child: const Text('Add Task'),
         ),
       ],
     );

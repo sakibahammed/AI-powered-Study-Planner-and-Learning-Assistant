@@ -1,8 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'components/mybuttons.dart';
-import 'components/textfields.dart';
-import '../screens/signup_page.dart';
+import '../components/widgets/mybuttons.dart';
+import '../components/widgets/textfields.dart';
+import 'signup_page.dart';
+import '../screens/dashboard_screen.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -14,15 +15,43 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   //text editing controllers
   final emailController = TextEditingController();
-
   final passwordController = TextEditingController();
 
-  //userlogin
+  //user login
   void userLogin() async {
-    await FirebaseAuth.instance.signInWithEmailAndPassword(
-      email: emailController.text,
-      password: passwordController.text,
-    );
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: emailController.text,
+        password: passwordController.text,
+      );
+
+      // Navigate to dashboard on successful login
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => DashboardScreen()),
+      );
+    } on FirebaseAuthException catch (e) {
+      String message;
+
+      // Customize message based on Firebase error code
+      switch (e.code) {
+        case 'user-not-found':
+          message = 'No user found with this email.';
+          break;
+        case 'wrong-password':
+          message = 'Incorrect password. Try again.';
+          break;
+        case 'invalid-email':
+          message = 'The email address is not valid.';
+          break;
+        default:
+          message = 'Incorrect email or password.';
+      }
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    }
   }
 
   //userSignup
@@ -52,7 +81,7 @@ class _LoginPageState extends State<LoginPage> {
               children: [
                 //logo
                 Image.asset(
-                  'lib/images/book__icon.png',
+                  'lib/components/images/book__icon.png',
                   height: 100,
                   width: 100,
                 ),
@@ -123,3 +152,4 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 }
+

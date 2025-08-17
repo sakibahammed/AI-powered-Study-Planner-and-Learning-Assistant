@@ -1,8 +1,8 @@
- import 'package:ai_study_planner/screens/dashboard_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import '../screens/login_page.dart';
-import '../screens//home_page.dart';
+import '../screens/dashboard_screen.dart';
+import 'login_page.dart';
+
 class AuthPage extends StatelessWidget {
   const AuthPage({super.key});
 

@@ -27,6 +27,7 @@ class MyButtons extends StatelessWidget {
         child: Center(
           child: Text(
             label,
+            textAlign: TextAlign.center,
             style: TextStyle(
               color: Color(0xFFFFFFFF),
               fontSize: 25,
@@ -38,3 +39,4 @@ class MyButtons extends StatelessWidget {
     );
   }
 }
+

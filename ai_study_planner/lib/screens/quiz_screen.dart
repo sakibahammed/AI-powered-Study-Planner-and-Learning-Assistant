@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 
 class QuizScreen extends StatefulWidget {
-  const QuizScreen({super.key});
-
   @override
   _QuizScreenState createState() => _QuizScreenState();
 }
