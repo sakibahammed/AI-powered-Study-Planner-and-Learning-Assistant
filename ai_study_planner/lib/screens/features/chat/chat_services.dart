@@ -43,4 +43,3 @@ class ChatServices {
     await http.post(Uri.parse('$apiBaseUrl/reset'));
   }
 }
-

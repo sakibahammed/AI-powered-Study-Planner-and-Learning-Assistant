@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import '../../components/widgets/chat_bubble.dart';
+import '../../../components/widgets/chat_bubble.dart';
 import 'chat_services.dart';
 
 class ChatPage extends StatefulWidget {
@@ -36,7 +36,6 @@ class _ChatPageState extends State<ChatPage> {
 
     final question = messageController.text;
     await _sendToFirebase(question, senderType: 'human');
-
     messageController.clear();
 
     if (fileUploaded) {
@@ -114,25 +113,18 @@ class _ChatPageState extends State<ChatPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: Container(
-          margin: EdgeInsets.only(left: 20, top: 8, bottom: 8),
-          padding: EdgeInsets.all(1),
-          decoration: BoxDecoration(
-            color: Color(0xFFFD6967),
-            shape: BoxShape.circle,
-          ),
-          child: IconButton(
-            icon: Icon(Icons.arrow_back_ios, color: Colors.white),
-            onPressed: () => Navigator.pop(context),
-          ),
-        ),
         backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: Text(
           'Ask Studybot',
-          style: TextStyle(fontWeight: FontWeight.w900),
+          style: TextStyle(fontWeight: FontWeight.w900, color: Colors.black87),
         ),
       ),
-      backgroundColor: Color(0xFFF6EAD8),
+      backgroundColor: Color(0xFFF6EAD8), // keep original background
       body: Column(
         children: [
           Expanded(child: buildMessageList()),
@@ -151,13 +143,13 @@ class _ChatPageState extends State<ChatPage> {
       builder: (context, snapshot) {
         if (snapshot.hasError) return Text('Error: ${snapshot.error}');
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Text('Loading...');
+          return const Center(child: CircularProgressIndicator());
         }
 
         final allDocs = snapshot.data!.docs;
 
         final filteredDocs = allDocs.where((doc) {
-          final data = doc.data();
+          final data = doc.data() as Map<String, dynamic>;
           final senderID = data['senderID'] as String? ?? '';
           final receiverID = data['receiverID'] as String? ?? '';
           final currentUserID = firebaseAuth.currentUser!.uid;
@@ -177,9 +169,13 @@ class _ChatPageState extends State<ChatPage> {
           }
         });
 
-        return ListView(
+        return ListView.builder(
           controller: _scrollController,
-          children: filteredDocs.map((doc) => buildMessageItem(doc)).toList(),
+          padding: EdgeInsets.symmetric(vertical: 10),
+          itemCount: filteredDocs.length,
+          itemBuilder: (context, index) {
+            return buildMessageItem(filteredDocs[index]);
+          },
         );
       },
     );
@@ -191,14 +187,12 @@ class _ChatPageState extends State<ChatPage> {
 
     return Container(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        child: ChatBubble(
-          message: data['message'],
-          bubbleColor: isUser ? Color(0xFFC33977) : Color(0xFFEAEAEA),
-          fontColor: isUser ? Colors.white : Colors.black,
-          alignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-        ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: ChatBubble(
+        message: data['message'],
+        bubbleColor: isUser ? Colors.deepOrangeAccent : Colors.pink,
+        fontColor: isUser ? Colors.black87 : Colors.white,
+        alignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
       ),
     );
   }
@@ -250,6 +244,13 @@ class _ChatPageState extends State<ChatPage> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(30),
                   border: Border.all(color: Colors.grey.shade300),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 5,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,

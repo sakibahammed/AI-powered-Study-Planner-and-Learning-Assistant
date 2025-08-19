@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
-import '../screens/flashcard_screen.dart';
-import '../screens/planner_screen.dart';
-import '../screens/quiz_screen.dart';
-import '../screens/chatbot_screen.dart';
-import '../theme/app_colors.dart';
+import '../../screens/features/flashcard/flashcard_screen.dart';
+import '../../screens/features/planner/planner_screen.dart';
+import '../../screens/features/quiz/quiz_screen.dart';
+import '../../screens/features/chat/chatbot_screen.dart';
+import '../../theme/app_colors.dart';
 
 class QuickActionSection extends StatelessWidget {
   final VoidCallback? onPlannerReturn;
   final Function(DateTime)? onDateSelected;
 
   const QuickActionSection({
-    Key? key,
+    super.key,
     this.onPlannerReturn,
     this.onDateSelected,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

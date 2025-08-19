@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../models/task.dart';
+import '../../models/task.dart';
 
 class EditTaskDialog extends StatefulWidget {
   final Task task;
@@ -10,13 +10,13 @@ class EditTaskDialog extends StatefulWidget {
   final Function(String)? onTaskDeleted;
 
   const EditTaskDialog({
-    Key? key,
+    super.key,
     required this.task,
     required this.onTaskUpdated,
     required this.onTaskStarted,
     required this.onTaskCompleted,
     this.onTaskDeleted,
-  }) : super(key: key);
+  });
 
   @override
   _EditTaskDialogState createState() => _EditTaskDialogState();
@@ -312,13 +312,13 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
                     });
                   }
                 },
-                child: Text(
-                  'Change',
-                  style: TextStyle(color: Colors.blue[600], fontSize: 12),
-                ),
                 style: TextButton.styleFrom(
                   padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   minimumSize: Size.zero,
+                ),
+                child: Text(
+                  'Change',
+                  style: TextStyle(color: Colors.blue[600], fontSize: 12),
                 ),
               ),
             ],
@@ -554,7 +554,7 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
   }) {
     final isDisabled = onPressed == null;
 
-    return Container(
+    return SizedBox(
       height: 40,
       child: ElevatedButton(
         onPressed: onPressed,

@@ -3,7 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../components/widgets/mybuttons.dart';
 import '../components/widgets/textfields.dart';
-import '../screens/dashboard_screen.dart';
+import '../auth/verification.dart'; // import verification page
+import '../theme/app_colors.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -18,7 +19,6 @@ class _SignupPageState extends State<SignupPage> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
 
-  // User signup
   void userSignup() async {
     try {
       UserCredential userCredential = await FirebaseAuth.instance
@@ -27,7 +27,6 @@ class _SignupPageState extends State<SignupPage> {
             password: passwordController.text.trim(),
           );
 
-      // Save user info in Firestore
       await FirebaseFirestore.instance
           .collection('users')
           .doc(userCredential.user!.uid)
@@ -37,10 +36,16 @@ class _SignupPageState extends State<SignupPage> {
             'email': emailController.text.trim(),
           });
 
-      // Navigate to dashboard after successful signup
+      // send email verification
+      await userCredential.user!.sendEmailVerification();
+
+      // go to verification screen
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => DashboardScreen()),
+        MaterialPageRoute(
+          builder: (context) =>
+              EmailVerificationScreen(user: userCredential.user!),
+        ),
       );
     } on FirebaseAuthException catch (e) {
       ScaffoldMessenger.of(
@@ -53,119 +58,204 @@ class _SignupPageState extends State<SignupPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFFF6D6B), Color(0xFFF89247), Color(0xFFF6EAD8)],
+            colors: [
+              Colors.pinkAccent,
+              Colors.deepOrangeAccent,
+              AppColors.background,
+            ],
             stops: [0.0, 0.41, 0.82],
           ),
         ),
         child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
-                    'First time?',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 25,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  // First name
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 31),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: const Text(
-                        'Enter your first name',
-                        style: TextStyle(fontSize: 18, color: Colors.white),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 7),
-                  MyTextFields(
-                    controller: firstnamecontroller,
-                    hintText: "",
-                    obscureText: false,
-                    alignment: TextAlign.left,
-                  ),
-                  const SizedBox(height: 15),
-                  // Last name
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 31),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: const Text(
-                        'Enter your last name',
-                        style: TextStyle(fontSize: 18, color: Colors.white),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 7),
-                  MyTextFields(
-                    controller: lastnamecontroller,
-                    hintText: "",
-                    obscureText: false,
-                    alignment: TextAlign.left,
-                  ),
-                  const SizedBox(height: 15),
-                  // Email
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 31),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: const Text(
-                        'Enter your email',
-                        style: TextStyle(fontSize: 18, color: Colors.white),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 7),
-                  MyTextFields(
-                    controller: emailController,
-                    hintText: "",
-                    obscureText: false,
-                    alignment: TextAlign.left,
-                  ),
-                  const SizedBox(height: 15),
-                  // Password
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 31),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: const Text(
-                        'Enter your password',
-                        style: TextStyle(fontSize: 18, color: Colors.white),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 7),
-                  MyTextFields(
-                    controller: passwordController,
-                    hintText: "",
-                    obscureText: true,
-                    alignment: TextAlign.left,
-                  ),
-                  const SizedBox(height: 15),
-                  // Sign up button
-                  MyButtons(
-                    color: const Color(0xFFC33977),
-                    label: 'Sign Up',
-                    onTap: userSignup,
-                  ),
-                ],
+          child: Stack(
+            children: [
+              // decorative circles (same as before)
+              Positioned(
+                top: -50,
+                left: -50,
+                child: _buildCircle(120, Colors.pinkAccent.withOpacity(0.3)),
               ),
-            ),
+              Positioned(
+                bottom: -60,
+                right: -40,
+                child: _buildCircle(
+                  150,
+                  Colors.deepOrangeAccent.withOpacity(0.3),
+                ),
+              ),
+              Positioned(
+                top: 200,
+                right: -70,
+                child: _buildCircle(100, Colors.white.withOpacity(0.15)),
+              ),
+              Positioned(
+                bottom: 120,
+                left: -50,
+                child: _buildCircle(80, Colors.pink.withOpacity(0.2)),
+              ),
+              Positioned(
+                top: 100,
+                left: 200,
+                child: _buildCircle(
+                  60,
+                  Colors.deepOrangeAccent.withOpacity(0.2),
+                ),
+              ),
+              Positioned(
+                bottom: 250,
+                right: 150,
+                child: _buildCircle(90, Colors.pinkAccent.withOpacity(0.25)),
+              ),
+              Positioned(
+                top: 300,
+                left: 50,
+                child: _buildCircle(50, Colors.white.withOpacity(0.1)),
+              ),
+              Positioned(
+                bottom: 50,
+                left: 100,
+                child: _buildCircle(
+                  70,
+                  Colors.deepOrangeAccent.withOpacity(0.15),
+                ),
+              ),
+              Positioned(
+                top: 400,
+                right: 50,
+                child: _buildCircle(60, Colors.pinkAccent.withOpacity(0.2)),
+              ),
+              Positioned(
+                bottom: 180,
+                left: 220,
+                child: _buildCircle(50, Colors.white.withOpacity(0.1)),
+              ),
+              Positioned(
+                top: 50,
+                right: 150,
+                child: _buildCircle(
+                  80,
+                  Colors.deepOrangeAccent.withOpacity(0.15),
+                ),
+              ),
+              Positioned(
+                bottom: 300,
+                left: 30,
+                child: _buildCircle(100, Colors.pinkAccent.withOpacity(0.25)),
+              ),
+
+              // signup form
+              Center(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'First time?',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 25,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 31),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: const Text(
+                            'Enter your first name',
+                            style: TextStyle(fontSize: 18, color: Colors.white),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 7),
+                      MyTextFields(
+                        controller: firstnamecontroller,
+                        hintText: "",
+                        obscureText: false,
+                        alignment: TextAlign.left,
+                      ),
+                      const SizedBox(height: 15),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 31),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: const Text(
+                            'Enter your last name',
+                            style: TextStyle(fontSize: 18, color: Colors.white),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 7),
+                      MyTextFields(
+                        controller: lastnamecontroller,
+                        hintText: "",
+                        obscureText: false,
+                        alignment: TextAlign.left,
+                      ),
+                      const SizedBox(height: 15),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 31),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: const Text(
+                            'Enter your email',
+                            style: TextStyle(fontSize: 18, color: Colors.white),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 7),
+                      MyTextFields(
+                        controller: emailController,
+                        hintText: "",
+                        obscureText: false,
+                        alignment: TextAlign.left,
+                      ),
+                      const SizedBox(height: 15),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 31),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: const Text(
+                            'Enter your password',
+                            style: TextStyle(fontSize: 18, color: Colors.white),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 7),
+                      MyTextFields(
+                        controller: passwordController,
+                        hintText: "",
+                        obscureText: true,
+                        alignment: TextAlign.left,
+                      ),
+                      const SizedBox(height: 15),
+                      MyButtons(
+                        color: Colors.pink,
+                        label: 'Sign Up',
+                        onTap: userSignup,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
-}
 
+  Widget _buildCircle(double size, Color color) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+    );
+  }
+}

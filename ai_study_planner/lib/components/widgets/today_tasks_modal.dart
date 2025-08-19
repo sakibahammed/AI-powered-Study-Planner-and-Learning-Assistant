@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/task.dart';
+import '../../models/task.dart';
 
 class TodayTasksModal extends StatefulWidget {
   final List<Task> tasks;
@@ -7,11 +7,11 @@ class TodayTasksModal extends StatefulWidget {
   final Function(String taskId, bool isStarted)? onTaskStarted;
 
   const TodayTasksModal({
-    Key? key,
+    super.key,
     required this.tasks,
     required this.onTaskCompleted,
     this.onTaskStarted,
-  }) : super(key: key);
+  });
 
   @override
   _TodayTasksModalState createState() => _TodayTasksModalState();

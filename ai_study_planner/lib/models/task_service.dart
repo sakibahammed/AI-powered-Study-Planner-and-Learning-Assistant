@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../models/task.dart';
+import 'task.dart';
 
 class TaskService {
   static final TaskService _instance = TaskService._internal();
@@ -80,7 +80,7 @@ class TaskService {
       return taskDate.isAtSameMomentAs(targetDate);
     }).toList();
     print(
-      'TaskService: Getting tasks for ${targetDate} - found ${tasks.length} tasks',
+      'TaskService: Getting tasks for $targetDate - found ${tasks.length} tasks',
     );
     return tasks;
   }

@@ -20,18 +20,47 @@ class ChatBubble extends StatelessWidget {
       crossAxisAlignment: alignment,
       children: [
         Container(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.75,
+          ),
           decoration: BoxDecoration(
             color: bubbleColor,
-            borderRadius: BorderRadius.circular(30),
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(
+                alignment == CrossAxisAlignment.start ? 0 : 30,
+              ),
+              topRight: Radius.circular(
+                alignment == CrossAxisAlignment.end ? 0 : 30,
+              ),
+              bottomLeft: Radius.circular(30),
+              bottomRight: Radius.circular(30),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 4,
+                offset: Offset(2, 2),
+              ),
+            ],
+            gradient: LinearGradient(
+              colors: [bubbleColor.withOpacity(0.9), bubbleColor],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
           ),
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          margin: const EdgeInsets.symmetric(vertical: 4),
           child: Text(
             message,
-            style: TextStyle(color: fontColor, fontSize: 17),
+            style: TextStyle(
+              color: fontColor,
+              fontSize: 17,
+              height: 1.3,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
       ],
     );
   }
 }
-

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../screens/settings_screen.dart';
+import '../../screens/settings_screen.dart';
 
 class GreetingSection extends StatefulWidget {
+  const GreetingSection({super.key});
+
   @override
   _GreetingSectionState createState() => _GreetingSectionState();
 }
@@ -69,7 +71,7 @@ class _GreetingSectionState extends State<GreetingSection> {
             _loadUserName();
           },
           child: CircleAvatar(
-            backgroundColor: Colors.orange,
+            backgroundColor: Colors.deepOrangeAccent,
             radius: 24,
             child: Icon(Icons.person, color: Colors.white),
           ),

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
-import '../theme/app_colors.dart';
-import '../models/task.dart';
-import '../services/task_service.dart';
-import '../widgets/edit_task_dialog.dart';
+import '../../../theme/app_colors.dart';
+import '../../../models/task.dart';
+import '../../../models/task_service.dart';
+import '../../../components/widgets/edit_task_dialog.dart';
 
 class PlannerScreen extends StatefulWidget {
   final Function(DateTime)? onDateSelected;
@@ -88,7 +88,7 @@ class _PlannerScreenState extends State<PlannerScreen>
   int get _totalTasksCount {
     final tasksForSelectedDay = _getEventsForDay(_selectedDay);
     print(
-      'Planner: Total tasks for ${_selectedDay}: ${tasksForSelectedDay.length}',
+      'Planner: Total tasks for $_selectedDay: ${tasksForSelectedDay.length}',
     );
     return tasksForSelectedDay.length;
   }
@@ -99,7 +99,7 @@ class _PlannerScreenState extends State<PlannerScreen>
         .where((task) => task.isCompleted)
         .toList();
     print(
-      'Planner: Completed tasks for ${_selectedDay}: ${completedTasks.length}',
+      'Planner: Completed tasks for $_selectedDay: ${completedTasks.length}',
     );
     print(
       'Planner: Completed task titles: ${completedTasks.map((t) => t.title).join(', ')}',
@@ -113,7 +113,7 @@ class _PlannerScreenState extends State<PlannerScreen>
         .where((task) => task.isStarted && !task.isCompleted)
         .toList();
     print(
-      'Planner: In progress tasks for ${_selectedDay}: ${inProgressTasks.length}',
+      'Planner: In progress tasks for $_selectedDay: ${inProgressTasks.length}',
     );
     print(
       'Planner: In progress task titles: ${inProgressTasks.map((t) => t.title).join(', ')}',
@@ -126,7 +126,7 @@ class _PlannerScreenState extends State<PlannerScreen>
     final pendingTasks = tasksForSelectedDay
         .where((task) => !task.isStarted && !task.isCompleted)
         .toList();
-    print('Planner: Pending tasks for ${_selectedDay}: ${pendingTasks.length}');
+    print('Planner: Pending tasks for $_selectedDay: ${pendingTasks.length}');
     print(
       'Planner: Pending task titles: ${pendingTasks.map((t) => t.title).join(', ')}',
     );
@@ -236,9 +236,7 @@ class _PlannerScreenState extends State<PlannerScreen>
           });
           // Notify dashboard about the selected date
           widget.onDateSelected?.call(selectedDay);
-          print(
-            'Planner: Date selected: ${selectedDay}, statistics will update',
-          );
+          print('Planner: Date selected: $selectedDay, statistics will update');
         },
         onFormatChanged: (format) {
           setState(() {
@@ -593,7 +591,7 @@ class _PlannerScreenState extends State<PlannerScreen>
   }) {
     final isDisabled = onPressed == null;
 
-    return Container(
+    return SizedBox(
       height: 40,
       child: ElevatedButton(
         onPressed: onPressed,

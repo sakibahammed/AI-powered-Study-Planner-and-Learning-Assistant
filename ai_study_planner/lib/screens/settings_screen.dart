@@ -6,11 +6,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../auth/login_page.dart';
 
 class SettingsScreen extends StatefulWidget {
+  const SettingsScreen({super.key});
+
   @override
-  _SettingsScreenState createState() => _SettingsScreenState();
+  SettingsScreenState createState() => SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class SettingsScreenState extends State<SettingsScreen> {
   File? _selectedImage;
   String? _imageUrl;
   bool _isLoading = false;
@@ -200,7 +202,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       children: [
                         CircleAvatar(
                           radius: 50,
-                          backgroundColor: Colors.orange,
+                          backgroundColor: Colors.deepOrangeAccent,
                           backgroundImage: _selectedImage != null
                               ? FileImage(_selectedImage!)
                               : (_imageUrl != null
@@ -218,7 +220,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           Positioned.fill(
                             child: Container(
                               decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.5),
+                                color: Colors.black.withValues(alpha: .5),
                                 shape: BoxShape.circle,
                               ),
                               child: Center(
@@ -309,7 +311,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             SizedBox(height: 20),
 
             // Logout Button
-            Container(
+            SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _logout,

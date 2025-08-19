@@ -1,18 +1,19 @@
+import 'package:ai_study_planner/theme/app_colors.dart';
 import 'package:flutter/material.dart';
-import '../widgets/greeting_section.dart';
-import '../widgets/stat_card.dart';
-import '../widgets/upcoming_section.dart';
+import '../components/widgets/greeting_section.dart';
+import '../components/widgets/stat_card.dart';
+import '../components/widgets/upcoming_section.dart';
 import '../models/task.dart';
-import '../services/task_service.dart';
-import '../screens/flashcard_screen.dart';
-import '../screens/planner_screen.dart';
-import '../screens/quiz_screen.dart';
-import '../screens/chatbot_screen.dart';
+import '../models/task_service.dart';
+import 'features/flashcard/flashcard_screen.dart';
+import 'features/planner/planner_screen.dart';
+import 'features/quiz/quiz_screen.dart';
+import 'features/chat/chatbot_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final DateTime? selectedDate;
 
-  const DashboardScreen({Key? key, this.selectedDate}) : super(key: key);
+  const DashboardScreen({super.key, this.selectedDate});
 
   @override
   _DashboardScreenState createState() => _DashboardScreenState();
@@ -163,7 +164,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: _isLoading
             ? Center(child: CircularProgressIndicator())

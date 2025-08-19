@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import '../models/task.dart';
-import '../services/task_service.dart';
+import '../../models/task.dart';
+import '../../models/task_service.dart';
 import 'package:intl/intl.dart';
 
 class UpcomingSection extends StatefulWidget {
+  const UpcomingSection({super.key});
+
   @override
   _UpcomingSectionState createState() => _UpcomingSectionState();
 }
@@ -139,9 +141,13 @@ class _UpcomingSectionState extends State<UpcomingSection>
               children: [
                 Text(
                   'Upcoming',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-                if (allUpcomingTasks.length > 0)
+                if (allUpcomingTasks.isNotEmpty)
                   Text(
                     '${upcomingTasks.length} of ${allUpcomingTasks.length} tasks',
                     style: TextStyle(fontSize: 12, color: Colors.grey[600]),

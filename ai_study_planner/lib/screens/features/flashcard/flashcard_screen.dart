@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/flashcard.dart';
+import '../../../models/flashcard.dart';
 import 'flashcard_detail.dart';
 
 class FlashcardPage extends StatelessWidget {
@@ -33,6 +33,8 @@ class FlashcardPage extends StatelessWidget {
       ],
     ),
   ];
+
+  FlashcardPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -100,9 +102,7 @@ class FlashcardPage extends StatelessWidget {
                               Text(
                                 flashcard.subject,
                                 style: TextStyle(
-                                  color: Color(
-                                    0xFFC33977,
-                                  ), // Reddish-pink color
+                                  color: Colors.pink, // Reddish-pink color
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
                                 ),
@@ -197,7 +197,7 @@ class FlashcardPage extends StatelessWidget {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Color(0xFFC33977)),
+                        borderSide: BorderSide(color: Colors.pink),
                       ),
                       contentPadding: EdgeInsets.symmetric(
                         horizontal: 16,
@@ -213,16 +213,14 @@ class FlashcardPage extends StatelessWidget {
                     ),
                   ),
                   SizedBox(height: 16),
-                  Container(
+                  SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () {
                         // Handle PDF upload
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(
-                          0xFFC33977,
-                        ), // Reddish-pink color
+                        backgroundColor: Colors.pink, // Reddish-pink color
                         padding: EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),

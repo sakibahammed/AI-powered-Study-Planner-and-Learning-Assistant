@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
-import '../models/task.dart';
+import '../../theme/app_colors.dart';
+import '../../models/task.dart';
 import 'today_tasks_modal.dart';
 
 class StatCard extends StatelessWidget {
@@ -16,6 +16,7 @@ class StatCard extends StatelessWidget {
   onTaskStarted; // Callback for task start
 
   const StatCard({
+    super.key,
     required this.title,
     required this.value,
     required this.subtitle,
