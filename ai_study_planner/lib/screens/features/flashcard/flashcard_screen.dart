@@ -41,20 +41,26 @@ class FlashcardPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Color(0xFFF6EAD8), // Light cream background
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Color(0xFFF6EAD8),
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: Colors.black87),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           'Flashcard',
           style: TextStyle(
-            color: Colors.black,
+            color: Colors.black87,
             fontWeight: FontWeight.bold,
             fontSize: 20,
           ),
         ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.settings, color: Colors.white),
+            onPressed: () {},
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -88,7 +94,7 @@ class FlashcardPage extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
+                              color: Colors.black.withValues(alpha: 0.05),
                               blurRadius: 5,
                               offset: Offset(0, 2),
                             ),

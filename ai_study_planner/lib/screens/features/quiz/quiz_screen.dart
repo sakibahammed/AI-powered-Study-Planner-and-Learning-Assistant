@@ -4,7 +4,7 @@ class QuizScreen extends StatefulWidget {
   const QuizScreen({super.key});
 
   @override
-  _QuizScreenState createState() => _QuizScreenState();
+  State<QuizScreen> createState() => _QuizScreenState();
 }
 
 class _QuizScreenState extends State<QuizScreen> {
@@ -31,8 +31,8 @@ class _QuizScreenState extends State<QuizScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF6EAD8),
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0, // No shadow
+        backgroundColor: const Color(0xFFF6EAD8),
+        elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black87),
           onPressed: () => Navigator.pop(context),
@@ -41,10 +41,16 @@ class _QuizScreenState extends State<QuizScreen> {
           'Quiz',
           style: TextStyle(
             color: Colors.black87,
-            fontSize: 24,
+            fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings, color: Colors.white),
+            onPressed: () {},
+          ),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -107,7 +113,7 @@ class _QuizScreenState extends State<QuizScreen> {
                         borderRadius: BorderRadius.circular(30),
                       ),
                       elevation: 6,
-                      shadowColor: Colors.black.withOpacity(0.3),
+                      shadowColor: Colors.black.withValues(alpha: 0.3),
                     ),
                     child: const Text(
                       'Upload a PDF file',
@@ -135,7 +141,7 @@ class _QuizScreenState extends State<QuizScreen> {
                         borderRadius: BorderRadius.circular(30),
                       ),
                       elevation: 6,
-                      shadowColor: Colors.black.withOpacity(0.3),
+                      shadowColor: Colors.black.withValues(alpha: 0.3),
                     ),
                     child: const Text(
                       'Start Quiz',
@@ -164,7 +170,7 @@ class _QuizScreenState extends State<QuizScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -227,7 +233,7 @@ class _QuizScreenState extends State<QuizScreen> {
                   border: Border.all(color: Colors.green, width: 4),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.green.withOpacity(0.2),
+                      color: Colors.green.withValues(alpha: 0.2),
                       blurRadius: 4,
                       offset: const Offset(2, 2),
                     ),
