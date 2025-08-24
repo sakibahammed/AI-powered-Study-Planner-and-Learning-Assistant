@@ -7,10 +7,10 @@ class UpcomingSection extends StatefulWidget {
   const UpcomingSection({super.key});
 
   @override
-  _UpcomingSectionState createState() => _UpcomingSectionState();
+  UpcomingSectionState createState() => UpcomingSectionState();
 }
 
-class _UpcomingSectionState extends State<UpcomingSection>
+class UpcomingSectionState extends State<UpcomingSection>
     with WidgetsBindingObserver {
   final TaskService _taskService = TaskService();
   List<Task> upcomingTasks = [];
@@ -41,7 +41,6 @@ class _UpcomingSectionState extends State<UpcomingSection>
   void didChangeDependencies() {
     super.didChangeDependencies();
     // Reload tasks when dependencies change (e.g., when returning to this screen)
-    print('UpcomingSection: didChangeDependencies called');
     _loadUpcomingTasks();
   }
 
@@ -216,7 +215,6 @@ class _UpcomingSectionState extends State<UpcomingSection>
   Widget _buildTaskCard(Task task) {
     final daysUntilDue = task.dueDate.difference(DateTime.now()).inDays;
     final isUrgent = daysUntilDue <= 3;
-    final isSoon = daysUntilDue > 3 && daysUntilDue <= 7;
 
     // Show badges for all upcoming tasks for testing
     final testIsSoon =
@@ -233,15 +231,15 @@ class _UpcomingSectionState extends State<UpcomingSection>
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isUrgent
-                ? Colors.red.withOpacity(0.3)
+                ? Colors.red.withValues(alpha: 0.3)
                 : testIsSoon
-                ? Colors.orange.withOpacity(0.3)
-                : Colors.grey.withOpacity(0.2),
+                ? Colors.orange.withValues(alpha: 0.3)
+                : Colors.grey.withValues(alpha: 0.2),
             width: 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.06),
+              color: Colors.black.withValues(alpha: 0.06),
               blurRadius: 8,
               offset: Offset(0, 3),
               spreadRadius: 0,
@@ -253,11 +251,13 @@ class _UpcomingSectionState extends State<UpcomingSection>
             Container(
               padding: EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: _getCategoryColor(task.category).withOpacity(0.15),
+                color: _getCategoryColor(task.category).withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(10),
                 boxShadow: [
                   BoxShadow(
-                    color: _getCategoryColor(task.category).withOpacity(0.1),
+                    color: _getCategoryColor(
+                      task.category,
+                    ).withValues(alpha: 0.1),
                     blurRadius: 4,
                     offset: Offset(0, 2),
                   ),

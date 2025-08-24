@@ -14,27 +14,16 @@ class TodayTasksModal extends StatefulWidget {
   });
 
   @override
-  _TodayTasksModalState createState() => _TodayTasksModalState();
+  TodayTasksModalState createState() => TodayTasksModalState();
 }
 
-class _TodayTasksModalState extends State<TodayTasksModal> {
+class TodayTasksModalState extends State<TodayTasksModal> {
   late List<Task> tasks;
 
   @override
   void initState() {
     super.initState();
     tasks = List.from(widget.tasks);
-  }
-
-  void _toggleTaskCompletion(String taskId) async {
-    setState(() {
-      final taskIndex = tasks.indexWhere((task) => task.id == taskId);
-      if (taskIndex != -1) {
-        final task = tasks[taskIndex];
-        tasks[taskIndex] = task.copyWith(isCompleted: !task.isCompleted);
-        widget.onTaskCompleted(taskId, tasks[taskIndex].isCompleted);
-      }
-    });
   }
 
   void _startTask(String taskId) async {
@@ -247,14 +236,14 @@ class _TodayTasksModalState extends State<TodayTasksModal> {
             border: Border.all(
               color: task.isCompleted
                   ? Colors.grey[300]!
-                  : _getCategoryColor(task.category).withOpacity(0.3),
+                  : _getCategoryColor(task.category).withValues(alpha: 0.3),
               width: 1,
             ),
             boxShadow: [
               BoxShadow(
                 color: task.isCompleted
-                    ? Colors.grey.withOpacity(0.1)
-                    : _getCategoryColor(task.category).withOpacity(0.1),
+                    ? Colors.grey.withValues(alpha: 0.1)
+                    : _getCategoryColor(task.category).withValues(alpha: 0.1),
                 blurRadius: 10,
                 offset: Offset(0, 4),
                 spreadRadius: 0,
@@ -271,7 +260,9 @@ class _TodayTasksModalState extends State<TodayTasksModal> {
                   decoration: BoxDecoration(
                     color: task.isCompleted
                         ? Colors.grey[300]
-                        : _getCategoryColor(task.category).withOpacity(0.2),
+                        : _getCategoryColor(
+                            task.category,
+                          ).withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(15),
                   ),
                   child: Icon(
@@ -328,7 +319,7 @@ class _TodayTasksModalState extends State<TodayTasksModal> {
                                 borderRadius: BorderRadius.circular(12),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.orange.withOpacity(0.3),
+                                    color: Colors.orange.withValues(alpha: 0.3),
                                     blurRadius: 4,
                                     offset: Offset(0, 2),
                                   ),
@@ -388,20 +379,20 @@ class _TodayTasksModalState extends State<TodayTasksModal> {
                                   colors: [
                                     _getCategoryColor(
                                       task.category,
-                                    ).withOpacity(0.8),
+                                    ).withValues(alpha: 0.8),
                                     _getCategoryColor(
                                       task.category,
-                                    ).withOpacity(0.6),
+                                    ).withValues(alpha: 0.6),
                                   ],
                                 ),
                           borderRadius: BorderRadius.circular(12),
                           boxShadow: [
                             BoxShadow(
                               color: task.isCompleted
-                                  ? Colors.grey.withOpacity(0.2)
+                                  ? Colors.grey.withValues(alpha: 0.2)
                                   : _getCategoryColor(
                                       task.category,
-                                    ).withOpacity(0.3),
+                                    ).withValues(alpha: 0.3),
                               blurRadius: 4,
                               offset: Offset(0, 2),
                             ),
@@ -480,7 +471,7 @@ class _TodayTasksModalState extends State<TodayTasksModal> {
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.green.withOpacity(0.3),
+                color: Colors.green.withValues(alpha: 0.3),
                 blurRadius: 6,
                 offset: Offset(0, 3),
               ),
@@ -519,7 +510,7 @@ class _TodayTasksModalState extends State<TodayTasksModal> {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.pink.withOpacity(0.3),
+              color: Colors.pink.withValues(alpha: 0.3),
               blurRadius: 6,
               offset: Offset(0, 3),
             ),

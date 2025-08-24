@@ -28,10 +28,12 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
       User? updatedUser = FirebaseAuth.instance.currentUser;
       if (updatedUser != null && updatedUser.emailVerified) {
         t.cancel();
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => DashboardScreen()),
-        );
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => DashboardScreen()),
+          );
+        }
       }
     });
   }
@@ -45,10 +47,13 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   Future<void> resendVerificationEmail() async {
     try {
       await widget.user.sendEmailVerification();
+      if (!mounted) return;
       setState(() => canResendEmail = false);
       await Future.delayed(const Duration(seconds: 30));
+      if (!mounted) return;
       setState(() => canResendEmail = true);
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error sending email: $e')));
@@ -57,6 +62,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
 
   void goBackToSignup() async {
     await FirebaseAuth.instance.signOut(); // optional: log out current user
+    if (!mounted) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const SignupPage()),
@@ -86,74 +92,86 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
               Positioned(
                 top: -50,
                 left: -50,
-                child: _buildCircle(120, Colors.pinkAccent.withOpacity(0.3)),
+                child: _buildCircle(
+                  120,
+                  Colors.pinkAccent.withValues(alpha: 0.3),
+                ),
               ),
               Positioned(
                 bottom: -60,
                 right: -40,
                 child: _buildCircle(
                   150,
-                  Colors.deepOrangeAccent.withOpacity(0.3),
+                  Colors.deepOrangeAccent.withValues(alpha: 0.3),
                 ),
               ),
               Positioned(
                 top: 200,
                 right: -70,
-                child: _buildCircle(100, Colors.white.withOpacity(0.15)),
+                child: _buildCircle(100, Colors.white.withValues(alpha: 0.15)),
               ),
               Positioned(
                 bottom: 120,
                 left: -50,
-                child: _buildCircle(80, Colors.pink.withOpacity(0.2)),
+                child: _buildCircle(80, Colors.pink.withValues(alpha: 0.2)),
               ),
               Positioned(
                 top: 100,
                 left: 200,
                 child: _buildCircle(
                   60,
-                  Colors.deepOrangeAccent.withOpacity(0.2),
+                  Colors.deepOrangeAccent.withValues(alpha: 0.2),
                 ),
               ),
               Positioned(
                 bottom: 250,
                 right: 150,
-                child: _buildCircle(90, Colors.pinkAccent.withOpacity(0.25)),
+                child: _buildCircle(
+                  90,
+                  Colors.pinkAccent.withValues(alpha: 0.25),
+                ),
               ),
               Positioned(
                 top: 300,
                 left: 50,
-                child: _buildCircle(50, Colors.white.withOpacity(0.1)),
+                child: _buildCircle(50, Colors.white.withValues(alpha: 0.1)),
               ),
               Positioned(
                 bottom: 50,
                 left: 100,
                 child: _buildCircle(
                   70,
-                  Colors.deepOrangeAccent.withOpacity(0.15),
+                  Colors.deepOrangeAccent.withValues(alpha: 0.15),
                 ),
               ),
               Positioned(
                 top: 400,
                 right: 50,
-                child: _buildCircle(60, Colors.pinkAccent.withOpacity(0.2)),
+                child: _buildCircle(
+                  60,
+                  Colors.pinkAccent.withValues(alpha: 0.2),
+                ),
               ),
               Positioned(
                 bottom: 180,
                 left: 220,
-                child: _buildCircle(50, Colors.white.withOpacity(0.1)),
+                child: _buildCircle(50, Colors.white.withValues(alpha: 0.1)),
               ),
               Positioned(
                 top: 50,
                 right: 150,
                 child: _buildCircle(
                   80,
-                  Colors.deepOrangeAccent.withOpacity(0.15),
+                  Colors.deepOrangeAccent.withValues(alpha: 0.15),
                 ),
               ),
               Positioned(
                 bottom: 300,
                 left: 30,
-                child: _buildCircle(100, Colors.pinkAccent.withOpacity(0.25)),
+                child: _buildCircle(
+                  100,
+                  Colors.pinkAccent.withValues(alpha: 0.25),
+                ),
               ),
 
               // Main Content
@@ -180,20 +198,24 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                           User? updatedUser = FirebaseAuth.instance.currentUser;
                           if (updatedUser != null &&
                               updatedUser.emailVerified) {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => DashboardScreen(),
-                              ),
-                            );
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Email not verified yet. Check your inbox.',
+                            if (mounted) {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => DashboardScreen(),
                                 ),
-                              ),
-                            );
+                              );
+                            }
+                          } else {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Email not verified yet. Check your inbox.',
+                                  ),
+                                ),
+                              );
+                            }
                           }
                         },
                         child: const Text(
