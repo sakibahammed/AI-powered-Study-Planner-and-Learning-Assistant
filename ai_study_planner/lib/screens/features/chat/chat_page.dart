@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:ai_study_planner/theme/app_colors.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:file_picker/file_picker.dart';
@@ -124,7 +125,7 @@ class _ChatPageState extends State<ChatPage> {
           style: TextStyle(fontWeight: FontWeight.w900, color: Colors.black87),
         ),
       ),
-      backgroundColor: Color(0xFFF6EAD8), // keep original background
+      backgroundColor: AppColors.background,
       body: Column(
         children: [
           Expanded(child: buildMessageList()),
@@ -149,7 +150,7 @@ class _ChatPageState extends State<ChatPage> {
         final allDocs = snapshot.data!.docs;
 
         final filteredDocs = allDocs.where((doc) {
-          final data = doc.data() as Map<String, dynamic>;
+          final data = doc.data();
           final senderID = data['senderID'] as String? ?? '';
           final receiverID = data['receiverID'] as String? ?? '';
           final currentUserID = firebaseAuth.currentUser!.uid;

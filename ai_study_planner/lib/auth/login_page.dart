@@ -174,6 +174,11 @@ class _LoginPageState extends State<LoginPage> {
                       height: 80,
                       width: 80,
                     ),
+                    const SizedBox(height: 3),
+                    const Text(
+                      "Study smart, not hard.",
+                      style: TextStyle(color: Colors.white, fontSize: 17),
+                    ),
                     const SizedBox(height: 10),
                     const Text(
                       "Welcome!",
@@ -183,11 +188,7 @@ class _LoginPageState extends State<LoginPage> {
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                    const SizedBox(height: 5),
-                    const Text(
-                      "Study smart, not hard",
-                      style: TextStyle(color: Colors.white, fontSize: 17),
-                    ),
+
                     const SizedBox(height: 10),
                     MyTextFields(
                       controller: emailController,
