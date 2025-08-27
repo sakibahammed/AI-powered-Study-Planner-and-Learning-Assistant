@@ -5,6 +5,7 @@ import '../../../theme/app_colors.dart';
 import '../../../models/task.dart';
 import '../../../models/task_service.dart';
 import '../../../components/widgets/edit_task_dialog.dart';
+import '../../../services/notification_service.dart';
 
 class PlannerScreen extends StatefulWidget {
   final Function(DateTime)? onDateSelected;
@@ -72,8 +73,6 @@ class _PlannerScreenState extends State<PlannerScreen>
     }
     setState(() {}); // Refresh UI to update statistics
   }
-
-
 
   List<Task> _getEventsForDay(DateTime day) {
     return _events[DateTime(day.year, day.month, day.day)] ?? [];
@@ -144,6 +143,7 @@ class _PlannerScreenState extends State<PlannerScreen>
         backgroundColor: Colors.pink,
         child: const Icon(Icons.add, color: Colors.white),
       ),
+      resizeToAvoidBottomInset: true, // This helps with keyboard handling
     );
   }
 
@@ -165,9 +165,40 @@ class _PlannerScreenState extends State<PlannerScreen>
               color: Colors.black87,
             ),
           ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.settings, color: Colors.white),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: Colors.black87),
+            onSelected: (value) async {
+              if (value == 'super_simple') {
+                print('🔥 User requested SUPER SIMPLE notification...');
+                final success = await NotificationService()
+                    .superSimpleNotification();
+                if (mounted) {
+                  final message = success
+                      ? '🔥 SUPER SIMPLE NOTIFICATION SENT! Check your notification bar!'
+                      : 'Super simple failed. Check console for errors.';
+                  final color = success ? Colors.orange : Colors.red;
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(message),
+                      duration: Duration(seconds: 5),
+                    ),
+                  );
+                }
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem<String>(
+                value: 'super_simple',
+                child: Row(
+                  children: [
+                    Icon(Icons.local_fire_department, color: Colors.orange),
+                    SizedBox(width: 8),
+                    Text('🔥 SUPER SIMPLE'),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -201,7 +232,6 @@ class _PlannerScreenState extends State<PlannerScreen>
           });
           // Notify dashboard about the selected date
           widget.onDateSelected?.call(selectedDay);
-
         },
         onFormatChanged: (format) {
           setState(() {
@@ -247,6 +277,53 @@ class _PlannerScreenState extends State<PlannerScreen>
           ),
         ),
         const SizedBox(height: 12),
+        // Notification Status Card
+        Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.pink.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.pink.withOpacity(0.3)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.pink,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.notifications_active,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Smart Notifications',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Tasks with time will get notified 5 minutes before',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
@@ -479,6 +556,40 @@ class _PlannerScreenState extends State<PlannerScreen>
                               fontWeight: FontWeight.w500,
                             ),
                           ),
+                          // Show time if it's not midnight (00:00)
+                          if (task.dueDate.hour != 0 ||
+                              task.dueDate.minute != 0) ...[
+                            SizedBox(width: 8),
+                            Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[200],
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.access_time,
+                                    size: 10,
+                                    color: Colors.grey[600],
+                                  ),
+                                  SizedBox(width: 2),
+                                  Text(
+                                    '${task.dueDate.hour.toString().padLeft(2, '0')}:${task.dueDate.minute.toString().padLeft(2, '0')}',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.grey[600],
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ],
@@ -563,10 +674,14 @@ class _PlannerScreenState extends State<PlannerScreen>
         style: ElevatedButton.styleFrom(
           backgroundColor: isActive
               ? color
-              : (isDisabled ? color.withValues(alpha: 0.3) : color.withValues(alpha: 0.1)),
-                  foregroundColor: isActive
-            ? Colors.white
-            : (isDisabled ? color.withValues(alpha: 0.6) : color.withValues(alpha: 0.8)),
+              : (isDisabled
+                    ? color.withValues(alpha: 0.3)
+                    : color.withValues(alpha: 0.1)),
+          foregroundColor: isActive
+              ? Colors.white
+              : (isDisabled
+                    ? color.withValues(alpha: 0.6)
+                    : color.withValues(alpha: 0.8)),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
@@ -758,92 +873,447 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   final _descriptionController = TextEditingController();
   String _selectedCategory = 'Study';
   String? _errorMessage;
+  TimeOfDay _selectedTime = TimeOfDay.now();
+  bool _hasTime = false;
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Add New Task'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: _titleController,
-            onChanged: (value) {
-              if (_errorMessage != null) {
-                setState(() {
-                  _errorMessage = null;
-                });
-              }
-            },
-            decoration: InputDecoration(
-              labelText: 'Task Title',
-              border: const OutlineInputBorder(),
-              errorText: _errorMessage,
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: Container(
+        width: MediaQuery.of(context).size.width * 0.9,
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.8,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: Offset(0, 5),
             ),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _descriptionController,
-            decoration: const InputDecoration(
-              labelText: 'Description (optional)',
-              border: OutlineInputBorder(),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.pink.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(Icons.add_task, color: Colors.pink, size: 20),
+                  ),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Add New Task',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        Text(
+                          'Create a new task for ${DateFormat('MMM dd, yyyy').format(widget.selectedDate)}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: Icon(Icons.close, color: Colors.grey[600], size: 20),
+                    padding: EdgeInsets.zero,
+                    constraints: BoxConstraints(minWidth: 32, minHeight: 32),
+                  ),
+                ],
+              ),
             ),
-            maxLines: 2,
-          ),
-          const SizedBox(height: 16),
-          DropdownButtonFormField<String>(
-            value: _selectedCategory,
-            decoration: const InputDecoration(
-              labelText: 'Category',
-              border: OutlineInputBorder(),
+            // Content
+            Flexible(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: _titleController,
+                      onChanged: (value) {
+                        if (_errorMessage != null) {
+                          setState(() {
+                            _errorMessage = null;
+                          });
+                        }
+                      },
+                      decoration: InputDecoration(
+                        labelText: 'Task Title',
+                        border: const OutlineInputBorder(),
+                        errorText: _errorMessage,
+                      ),
+                      textInputAction: TextInputAction
+                          .next, // Helps with keyboard navigation
+                      keyboardType: TextInputType.text,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _descriptionController,
+                      decoration: const InputDecoration(
+                        labelText: 'Description (optional)',
+                        border: OutlineInputBorder(),
+                      ),
+                      maxLines: 2,
+                      textInputAction: TextInputAction
+                          .done, // Helps with keyboard navigation
+                      keyboardType: TextInputType.multiline,
+                    ),
+                    const SizedBox(height: 16),
+                    // Beautiful Time Selection Section
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.grey[50],
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.grey[200]!),
+                      ),
+                      child: Column(
+                        children: [
+                          // Time Display Header
+                          Container(
+                            padding: EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: _hasTime
+                                  ? Colors.pink.withOpacity(0.08)
+                                  : Colors.grey[100],
+                              borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(16),
+                              ),
+                              border: Border(
+                                bottom: BorderSide(
+                                  color: _hasTime
+                                      ? Colors.pink.withOpacity(0.2)
+                                      : Colors.grey[200]!,
+                                  width: 1,
+                                ),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: _hasTime
+                                        ? Colors.pink
+                                        : Colors.grey[400],
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow: _hasTime
+                                        ? [
+                                            BoxShadow(
+                                              color: Colors.pink.withOpacity(
+                                                0.3,
+                                              ),
+                                              blurRadius: 8,
+                                              offset: Offset(0, 2),
+                                            ),
+                                          ]
+                                        : null,
+                                  ),
+                                  child: Icon(
+                                    Icons.access_time,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                ),
+                                SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Task Time',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.grey[800],
+                                        ),
+                                      ),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        _hasTime
+                                            ? 'Scheduled for ${_selectedTime.format(context)}'
+                                            : 'No specific time set',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: _hasTime
+                                              ? Colors.pink[700]
+                                              : Colors.grey[600],
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // Time Selection Controls
+                          Container(
+                            padding: EdgeInsets.all(20),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () async {
+                                      final TimeOfDay?
+                                      picked = await showTimePicker(
+                                        context: context,
+                                        initialTime: _selectedTime,
+                                        builder: (context, child) {
+                                          return Theme(
+                                            data: Theme.of(context).copyWith(
+                                              colorScheme: ColorScheme.light(
+                                                primary: Colors.pink,
+                                                onPrimary: Colors.white,
+                                                surface: Colors.white,
+                                                onSurface: Colors.black87,
+                                              ),
+                                              dialogBackgroundColor:
+                                                  Colors.white,
+                                            ),
+                                            child: child!,
+                                          );
+                                        },
+                                      );
+                                      if (picked != null) {
+                                        setState(() {
+                                          _selectedTime = picked;
+                                          _hasTime = true;
+                                        });
+                                      }
+                                    },
+                                    child: Container(
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: 14,
+                                        horizontal: 20,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: _hasTime
+                                              ? [
+                                                  Colors.orange[400]!,
+                                                  Colors.orange[500]!,
+                                                ]
+                                              : [
+                                                  Colors.pink[400]!,
+                                                  Colors.pink[500]!,
+                                                ],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color:
+                                                (_hasTime
+                                                        ? Colors.orange
+                                                        : Colors.pink)
+                                                    .withOpacity(0.3),
+                                            blurRadius: 12,
+                                            offset: Offset(0, 6),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            _hasTime
+                                                ? Icons.edit
+                                                : Icons.schedule,
+                                            color: Colors.white,
+                                            size: 20,
+                                          ),
+                                          SizedBox(width: 10),
+                                          Text(
+                                            _hasTime
+                                                ? 'Change Time'
+                                                : 'Set Time',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                                if (_hasTime) ...[
+                                  SizedBox(width: 16),
+                                  GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        _hasTime = false;
+                                      });
+                                    },
+                                    child: Container(
+                                      padding: EdgeInsets.all(14),
+                                      decoration: BoxDecoration(
+                                        color: Colors.red[50],
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: Colors.red[200]!,
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.red.withOpacity(0.1),
+                                            blurRadius: 8,
+                                            offset: Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Icon(
+                                        Icons.clear,
+                                        color: Colors.red[600],
+                                        size: 22,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: _selectedCategory,
+                      decoration: const InputDecoration(
+                        labelText: 'Category',
+                        border: OutlineInputBorder(),
+                      ),
+                      items:
+                          [
+                            'Study',
+                            'Project',
+                            'Health',
+                            'Personal',
+                            'Errands',
+                            'Planning',
+                          ].map((category) {
+                            return DropdownMenuItem(
+                              value: category,
+                              child: Text(category),
+                            );
+                          }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedCategory = value!;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ),
             ),
-            items:
-                [
-                  'Study',
-                  'Project',
-                  'Health',
-                  'Personal',
-                  'Errands',
-                  'Planning',
-                ].map((category) {
-                  return DropdownMenuItem(
-                    value: category,
-                    child: Text(category),
-                  );
-                }).toList(),
-            onChanged: (value) {
-              setState(() {
-                _selectedCategory = value!;
-              });
-            },
-          ),
-        ],
+            // Actions
+            Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.vertical(
+                  bottom: Radius.circular(16),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(color: Colors.grey[600]),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        if (_titleController.text.trim().isNotEmpty) {
+                          // Combine selected date with time if time is set
+                          DateTime dueDate = widget.selectedDate;
+                          if (_hasTime) {
+                            dueDate = DateTime(
+                              widget.selectedDate.year,
+                              widget.selectedDate.month,
+                              widget.selectedDate.day,
+                              _selectedTime.hour,
+                              _selectedTime.minute,
+                            );
+                          }
+
+                          final task = Task(
+                            id: DateTime.now().millisecondsSinceEpoch
+                                .toString(),
+                            title: _titleController.text.trim(),
+                            description: _descriptionController.text.trim(),
+                            dueDate: dueDate,
+                            category: _selectedCategory,
+                          );
+                          Navigator.pop(context, task);
+                        } else {
+                          setState(() {
+                            _errorMessage = 'Task title is required';
+                          });
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.pink,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: Text(
+                        'Add Task',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            if (_titleController.text.trim().isNotEmpty) {
-              final task = Task(
-                id: DateTime.now().millisecondsSinceEpoch.toString(),
-                title: _titleController.text.trim(),
-                description: _descriptionController.text.trim(),
-                dueDate: widget.selectedDate,
-                category: _selectedCategory,
-              );
-              Navigator.pop(context, task);
-            } else {
-              setState(() {
-                _errorMessage = 'Task title is required';
-              });
-            }
-          },
-          child: const Text('Add Task'),
-        ),
-      ],
     );
   }
 }

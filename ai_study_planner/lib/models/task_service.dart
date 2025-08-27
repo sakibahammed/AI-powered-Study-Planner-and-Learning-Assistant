@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'task.dart';
+import '../services/notification_service.dart';
 
 class TaskService {
   static final TaskService _instance = TaskService._internal();
@@ -57,6 +58,20 @@ class TaskService {
     _allTasks.add(task);
     print('TaskService: Total tasks now: ${_allTasks.length}');
     await _saveTasksToStorage();
+
+    // Schedule notification for the task
+    try {
+      final success = await NotificationService().scheduleTaskNotification(
+        task,
+      );
+      if (success) {
+        print('✅ Notification scheduled successfully for task: ${task.title}');
+      } else {
+        print('⚠️ Failed to schedule notification for task: ${task.title}');
+      }
+    } catch (e) {
+      print('❌ Error scheduling notification: $e');
+    }
   }
 
   // Get all tasks
@@ -123,16 +138,44 @@ class TaskService {
   Future<void> updateTask(Task updatedTask) async {
     final taskIndex = _allTasks.indexWhere((task) => task.id == updatedTask.id);
     if (taskIndex != -1) {
+      final oldTask = _allTasks[taskIndex];
       _allTasks[taskIndex] = updatedTask;
       print('TaskService: Updated task ${updatedTask.title}');
       await _saveTasksToStorage();
+
+      // Cancel old notification and schedule new one
+      try {
+        await NotificationService().cancelTaskNotification(oldTask);
+        final success = await NotificationService().scheduleTaskNotification(
+          updatedTask,
+        );
+        if (success) {
+          print(
+            '✅ Notification updated successfully for task: ${updatedTask.title}',
+          );
+        } else {
+          print(
+            '⚠️ Failed to update notification for task: ${updatedTask.title}',
+          );
+        }
+      } catch (e) {
+        print('❌ Error updating notification: $e');
+      }
     }
   }
 
   // Remove a task
   Future<void> removeTask(String taskId) async {
+    final taskToRemove = _allTasks.firstWhere((task) => task.id == taskId);
     _allTasks.removeWhere((task) => task.id == taskId);
     await _saveTasksToStorage();
+
+    // Cancel notification for the removed task
+    try {
+      await NotificationService().cancelTaskNotification(taskToRemove);
+    } catch (e) {
+      print('❌ Error cancelling notification: $e');
+    }
   }
 
   // Clear all tasks (for testing)

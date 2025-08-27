@@ -27,6 +27,8 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
   late TextEditingController _descriptionController;
   late DateTime _selectedDate;
   late String _selectedCategory;
+  late TimeOfDay _selectedTime;
+  late bool _hasTime;
 
   @override
   void initState() {
@@ -37,6 +39,10 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
     );
     _selectedDate = widget.task.dueDate;
     _selectedCategory = widget.task.category;
+
+    // Initialize time from task dueDate
+    _selectedTime = TimeOfDay.fromDateTime(widget.task.dueDate);
+    _hasTime = widget.task.dueDate.hour != 0 || widget.task.dueDate.minute != 0;
   }
 
   @override
@@ -216,6 +222,8 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
         SizedBox(height: 12),
         _buildDateField(),
         SizedBox(height: 12),
+        _buildTimeField(),
+        SizedBox(height: 12),
         _buildCategoryField(),
       ],
     );
@@ -258,6 +266,12 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
               border: InputBorder.none,
               contentPadding: EdgeInsets.all(12),
             ),
+            textInputAction: maxLines == 1
+                ? TextInputAction.next
+                : TextInputAction.done,
+            keyboardType: maxLines == 1
+                ? TextInputType.text
+                : TextInputType.multiline,
           ),
         ),
       ],
@@ -319,6 +333,225 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
                 child: Text(
                   'Change',
                   style: TextStyle(color: Colors.blue[600], fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTimeField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.access_time, color: Colors.grey[600], size: 16),
+            SizedBox(width: 8),
+            Text(
+              'Time',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.grey[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey[200]!),
+          ),
+          child: Column(
+            children: [
+              // Time Display Header
+              Container(
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: _hasTime
+                      ? Colors.pink.withOpacity(0.08)
+                      : Colors.grey[100],
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+                  border: Border(
+                    bottom: BorderSide(
+                      color: _hasTime
+                          ? Colors.pink.withOpacity(0.2)
+                          : Colors.grey[200]!,
+                      width: 1,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: _hasTime ? Colors.pink : Colors.grey[400],
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: _hasTime
+                            ? [
+                                BoxShadow(
+                                  color: Colors.pink.withOpacity(0.3),
+                                  blurRadius: 6,
+                                  offset: Offset(0, 2),
+                                ),
+                              ]
+                            : null,
+                      ),
+                      child: Icon(
+                        Icons.access_time,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Task Time',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[800],
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            _hasTime
+                                ? 'Scheduled for ${_selectedTime.format(context)}'
+                                : 'No specific time set',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: _hasTime
+                                  ? Colors.pink[700]
+                                  : Colors.grey[600],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Time Selection Controls
+              Container(
+                padding: EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () async {
+                          final TimeOfDay? picked = await showTimePicker(
+                            context: context,
+                            initialTime: _selectedTime,
+                            builder: (context, child) {
+                              return Theme(
+                                data: Theme.of(context).copyWith(
+                                  colorScheme: ColorScheme.light(
+                                    primary: Colors.pink,
+                                    onPrimary: Colors.white,
+                                    surface: Colors.white,
+                                    onSurface: Colors.black87,
+                                  ),
+                                  dialogBackgroundColor: Colors.white,
+                                ),
+                                child: child!,
+                              );
+                            },
+                          );
+                          if (picked != null) {
+                            setState(() {
+                              _selectedTime = picked;
+                              _hasTime = true;
+                            });
+                          }
+                        },
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                            vertical: 12,
+                            horizontal: 16,
+                          ),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: _hasTime
+                                  ? [Colors.orange[400]!, Colors.orange[500]!]
+                                  : [Colors.pink[400]!, Colors.pink[500]!],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(10),
+                            boxShadow: [
+                              BoxShadow(
+                                color: (_hasTime ? Colors.orange : Colors.pink)
+                                    .withOpacity(0.3),
+                                blurRadius: 8,
+                                offset: Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                _hasTime ? Icons.edit : Icons.schedule,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                _hasTime ? 'Change Time' : 'Set Time',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    if (_hasTime) ...[
+                      SizedBox(width: 12),
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _hasTime = false;
+                          });
+                        },
+                        child: Container(
+                          padding: EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.red[50],
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.red[200]!),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.red.withOpacity(0.1),
+                                blurRadius: 6,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            Icons.clear,
+                            color: Colors.red[600],
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ],
@@ -513,10 +746,22 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
             Expanded(
               child: ElevatedButton(
                 onPressed: () {
+                  // Combine selected date with time if time is set
+                  DateTime dueDate = _selectedDate;
+                  if (_hasTime) {
+                    dueDate = DateTime(
+                      _selectedDate.year,
+                      _selectedDate.month,
+                      _selectedDate.day,
+                      _selectedTime.hour,
+                      _selectedTime.minute,
+                    );
+                  }
+
                   final updatedTask = widget.task.copyWith(
                     title: _titleController.text,
                     description: _descriptionController.text,
-                    dueDate: _selectedDate,
+                    dueDate: dueDate,
                     category: _selectedCategory,
                   );
                   widget.onTaskUpdated(updatedTask);

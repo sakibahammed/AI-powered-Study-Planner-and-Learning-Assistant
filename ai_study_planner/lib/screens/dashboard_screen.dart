@@ -166,6 +166,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      resizeToAvoidBottomInset: true, // This helps with keyboard handling
       body: SafeArea(
         child: _isLoading
             ? Center(child: CircularProgressIndicator())
