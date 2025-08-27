@@ -37,13 +37,13 @@ class ChatBubble extends StatelessWidget {
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: Colors.black.withValues(alpha: 0.1),
                 blurRadius: 4,
                 offset: Offset(2, 2),
               ),
             ],
             gradient: LinearGradient(
-              colors: [bubbleColor.withOpacity(0.9), bubbleColor],
+              colors: [bubbleColor.withValues(alpha: 0.9), bubbleColor],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),

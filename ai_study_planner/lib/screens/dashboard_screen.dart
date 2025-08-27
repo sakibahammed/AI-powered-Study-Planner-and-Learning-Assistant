@@ -17,7 +17,7 @@ class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key, this.selectedDate});
 
   @override
-  _DashboardScreenState createState() => _DashboardScreenState();
+  State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
 class _DashboardScreenState extends State<DashboardScreen>
@@ -64,7 +64,6 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   void _loadTodayTasks() {
-    print('Dashboard: _loadTodayTasks called');
     setState(() {
       selectedDateTasks = _taskService.getTasksForDate(_currentSelectedDate);
     });
@@ -243,9 +242,6 @@ class _DashboardScreenState extends State<DashboardScreen>
                   PlannerScreen(
                     onDateSelected: updateSelectedDate,
                     onTaskAdded: () {
-                      print(
-                        'Dashboard: Task added callback received, refreshing...',
-                      );
                       _loadTodayTasks();
                       setState(() {});
                     },

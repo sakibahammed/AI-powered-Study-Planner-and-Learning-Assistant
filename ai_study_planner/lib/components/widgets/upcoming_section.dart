@@ -157,7 +157,7 @@ class UpcomingSectionState extends State<UpcomingSection>
             if (allUpcomingTasks.length > 5)
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.pink.withOpacity(0.1),
+                  color: Colors.pink.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: TextButton(
@@ -318,10 +318,10 @@ class UpcomingSectionState extends State<UpcomingSection>
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.1),
+                  color: Colors.red.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(
-                    color: Colors.red.withOpacity(0.2),
+                    color: Colors.red.withValues(alpha: 0.2),
                     width: 1,
                   ),
                 ),
@@ -345,10 +345,10 @@ class UpcomingSectionState extends State<UpcomingSection>
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
+                  color: Colors.orange.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(
-                    color: Colors.orange.withOpacity(0.2),
+                    color: Colors.orange.withValues(alpha: 0.2),
                     width: 1,
                   ),
                 ),
@@ -396,7 +396,9 @@ class UpcomingSectionState extends State<UpcomingSection>
                   Container(
                     padding: EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: _getCategoryColor(task.category).withOpacity(0.2),
+                      color: _getCategoryColor(
+                        task.category,
+                      ).withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
@@ -431,10 +433,10 @@ class UpcomingSectionState extends State<UpcomingSection>
                               colors: [
                                 _getCategoryColor(
                                   task.category,
-                                ).withOpacity(0.8),
+                                ).withValues(alpha: 0.8),
                                 _getCategoryColor(
                                   task.category,
-                                ).withOpacity(0.6),
+                                ).withValues(alpha: 0.6),
                               ],
                             ),
                             borderRadius: BorderRadius.circular(12),
