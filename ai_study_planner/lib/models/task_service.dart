@@ -28,11 +28,12 @@ class TaskService {
           final task = Task.fromMap(taskMap);
           _allTasks.add(task);
         } catch (e) {
-          // Handle error silently
+          print('TaskService: Error parsing task: $e');
         }
       }
+      print('TaskService: Loaded ${_allTasks.length} tasks from storage');
     } catch (e) {
-      // Handle error silently
+      print('TaskService: Error loading tasks from storage: $e');
     }
   }
 
@@ -44,19 +45,26 @@ class TaskService {
           .map((task) => json.encode(task.toMap()))
           .toList();
       await prefs.setStringList(_storageKey, tasksJson);
+      print('TaskService: Saved ${_allTasks.length} tasks to storage');
     } catch (e) {
-      // Handle error silently
+      print('TaskService: Error saving tasks to storage: $e');
     }
   }
 
   // Add a new task
   Future<void> addTask(Task task) async {
+    print('TaskService: Adding task - ${task.title} for ${task.dueDate}');
     _allTasks.add(task);
+    print('TaskService: Total tasks now: ${_allTasks.length}');
     await _saveTasksToStorage();
   }
 
   // Get all tasks
   List<Task> getAllTasks() {
+    print('TaskService: Getting all tasks - ${_allTasks.length} tasks');
+    print(
+      'TaskService: Task details: ${_allTasks.map((t) => '${t.title} (${t.dueDate})').join(', ')}',
+    );
     return List.from(_allTasks);
   }
 
@@ -71,7 +79,9 @@ class TaskService {
       );
       return taskDate.isAtSameMomentAs(targetDate);
     }).toList();
-
+    print(
+      'TaskService: Getting tasks for $targetDate - found ${tasks.length} tasks',
+    );
     return tasks;
   }
 
@@ -79,7 +89,7 @@ class TaskService {
   List<Task> getTodayTasks() {
     final today = DateTime.now();
     final tasks = getTasksForDate(today);
-
+    print('TaskService: Today\'s tasks - ${tasks.length} tasks');
     return tasks;
   }
 
@@ -89,7 +99,9 @@ class TaskService {
     if (taskIndex != -1) {
       final task = _allTasks[taskIndex];
       _allTasks[taskIndex] = task.copyWith(isCompleted: isCompleted);
-
+      print(
+        'TaskService: Updated task ${task.title} completion to $isCompleted',
+      );
       await _saveTasksToStorage();
     }
   }
@@ -100,7 +112,9 @@ class TaskService {
     if (taskIndex != -1) {
       final task = _allTasks[taskIndex];
       _allTasks[taskIndex] = task.copyWith(isStarted: isStarted);
-
+      print(
+        'TaskService: Updated task ${task.title} start status to $isStarted',
+      );
       await _saveTasksToStorage();
     }
   }
@@ -110,7 +124,7 @@ class TaskService {
     final taskIndex = _allTasks.indexWhere((task) => task.id == updatedTask.id);
     if (taskIndex != -1) {
       _allTasks[taskIndex] = updatedTask;
-
+      print('TaskService: Updated task ${updatedTask.title}');
       await _saveTasksToStorage();
     }
   }

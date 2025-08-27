@@ -9,6 +9,7 @@ import 'features/flashcard/flashcard_screen.dart';
 import 'features/planner/planner_screen.dart';
 import 'features/quiz/quiz_screen.dart';
 import 'features/chat/chatbot_screen.dart';
+import 'features/progress/progress_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final DateTime? selectedDate;
@@ -16,7 +17,7 @@ class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key, this.selectedDate});
 
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  _DashboardScreenState createState() => _DashboardScreenState();
 }
 
 class _DashboardScreenState extends State<DashboardScreen>
@@ -63,6 +64,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   void _loadTodayTasks() {
+    print('Dashboard: _loadTodayTasks called');
     setState(() {
       selectedDateTasks = _taskService.getTasksForDate(_currentSelectedDate);
     });
@@ -217,7 +219,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: Offset(0, -2),
           ),
@@ -241,6 +243,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                   PlannerScreen(
                     onDateSelected: updateSelectedDate,
                     onTaskAdded: () {
+                      print(
+                        'Dashboard: Task added callback received, refreshing...',
+                      );
                       _loadTodayTasks();
                       setState(() {});
                     },
@@ -256,6 +261,11 @@ class _DashboardScreenState extends State<DashboardScreen>
                 icon: Icons.chat_bubble,
                 label: 'Studybot',
                 onTap: () => _navigateToScreen(ChatbotScreen()),
+              ),
+              _buildNavItem(
+                icon: Icons.trending_up,
+                label: 'Progress',
+                onTap: () => _navigateToScreen(ProgressScreen()),
               ),
             ],
           ),
@@ -277,7 +287,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           Container(
             padding: EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.pink.withOpacity(0.1),
+              color: Colors.pink.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: Colors.pink, size: 24),

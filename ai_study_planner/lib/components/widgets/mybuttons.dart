@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-//mehedi wrote some faltu code
 class MyButtons extends StatelessWidget {
   final String label;
   final Color color;
@@ -39,7 +38,5 @@ class MyButtons extends StatelessWidget {
       ),
     );
   }
-
-  //mehedi wrote some faltu code
-  //mehedi wrote some faltu code
 }
+

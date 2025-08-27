@@ -19,7 +19,7 @@ class EditTaskDialog extends StatefulWidget {
   });
 
   @override
-  State<EditTaskDialog> createState() => _EditTaskDialogState();
+  _EditTaskDialogState createState() => _EditTaskDialogState();
 }
 
 class _EditTaskDialogState extends State<EditTaskDialog> {
@@ -60,7 +60,7 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
+              color: Colors.black.withOpacity(0.1),
               blurRadius: 10,
               offset: Offset(0, 5),
             ),
@@ -103,7 +103,7 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
           Container(
             padding: EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: _getCategoryColor().withValues(alpha: 0.1),
+              color: _getCategoryColor().withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
@@ -167,7 +167,7 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
                     ),
                   );
 
-                  if (shouldDelete == true && mounted) {
+                  if (shouldDelete == true) {
                     widget.onTaskDeleted!(widget.task.id);
                     Navigator.pop(context);
                   }
@@ -446,7 +446,7 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
       child: Container(
         padding: EdgeInsets.symmetric(vertical: 6, horizontal: 4),
         decoration: BoxDecoration(
-          color: isActive ? color.withValues(alpha: 0.1) : Colors.transparent,
+          color: isActive ? color.withOpacity(0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
           border: isActive ? Border.all(color: color, width: 1) : null,
         ),
@@ -561,14 +561,10 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
         style: ElevatedButton.styleFrom(
           backgroundColor: isActive
               ? color
-              : (isDisabled
-                    ? color.withValues(alpha: 0.3)
-                    : color.withValues(alpha: 0.1)),
+              : (isDisabled ? color.withOpacity(0.3) : color.withOpacity(0.1)),
           foregroundColor: isActive
               ? Colors.white
-              : (isDisabled
-                    ? color.withValues(alpha: 0.6)
-                    : color.withValues(alpha: 0.8)),
+              : (isDisabled ? color.withOpacity(0.6) : color.withOpacity(0.8)),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         child: Row(
@@ -584,8 +580,8 @@ class _EditTaskDialogState extends State<EditTaskDialog> {
                 color: isActive
                     ? Colors.white
                     : (isDisabled
-                          ? color.withValues(alpha: 0.6)
-                          : color.withValues(alpha: 0.8)),
+                          ? color.withOpacity(0.6)
+                          : color.withOpacity(0.8)),
               ),
             ),
           ],

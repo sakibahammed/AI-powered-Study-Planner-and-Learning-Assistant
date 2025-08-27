@@ -1,9 +1,4 @@
-import 'dart:io';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-
-import '../../../components/service/mcq_service.dart';
-import '../../../models/mcq.dart';
 
 class QuizScreen extends StatefulWidget {
   const QuizScreen({super.key});
@@ -13,172 +8,155 @@ class QuizScreen extends StatefulWidget {
 }
 
 class _QuizScreenState extends State<QuizScreen> {
-  // Set your base URL (no trailing slash)
-  static const String baseUrl =
-      'https://penny-phi-soundtrack-terms.trycloudflare.com';
-
   final TextEditingController _topicController = TextEditingController();
-  final _countController = TextEditingController(text: '5');
-
-  late final McqService _svc = McqService(baseUrl);
-
-  List<MCQQuestion> _questions = [];
-  bool _loading = false;
-  int? _score; // last submitted score
 
   @override
   void dispose() {
     _topicController.dispose();
-    _countController.dispose();
     super.dispose();
   }
 
-  void _showSnack(String message, {Color color = Colors.green}) {
+  void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: color,
+        backgroundColor: Colors.green,
         duration: const Duration(seconds: 2),
       ),
     );
   }
 
-  Future<void> _uploadPdf() async {
-    try {
-      setState(() => _loading = true);
-      final picked = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['pdf'],
-        withReadStream: false,
-      );
-      if (picked == null || picked.files.isEmpty) {
-        setState(() => _loading = false);
-        return;
-      }
-      final filePath = picked.files.single.path;
-      if (filePath == null) {
-        setState(() => _loading = false);
-        _showSnack('No file path found.', color: Colors.red);
-        return;
-      }
-
-      final status = await _svc.uploadMcqPdf(File(filePath));
-      _showSnack(status);
-    } catch (e) {
-      _showSnack('Upload error: $e', color: Colors.red);
-    } finally {
-      setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _startQuiz() async {
-    try {
-      setState(() {
-        _loading = true;
-        _score = null;
-      });
-
-      final cnt = int.tryParse(_countController.text.trim());
-      final count = (cnt != null && cnt > 0 && cnt <= 50) ? cnt : 5;
-
-      final raw = await _svc.generateMcqsRaw(count: count);
-      // debugPrint('MCQ raw (first 400): ${raw.substring(0, raw.length.clamp(0, 400))}');
-      final parsed = _svc.parseMcqText(raw);
-
-      if (parsed.isEmpty) {
-        _showSnack('No MCQs parsed from response.', color: Colors.red);
-        setState(() => _questions = []);
-        return;
-      }
-
-      setState(() {
-        _questions = parsed;
-      });
-      _showSnack('Loaded ${_questions.length} MCQs. Good luck!');
-    } catch (e) {
-      _showSnack('Generate error: $e', color: Colors.red);
-    } finally {
-      setState(() => _loading = false);
-    }
-  }
-
-  void _submitQuiz() {
-    if (_questions.isEmpty) return;
-    int correct = 0;
-    for (final q in _questions) {
-      if (q.selectedIndex != null && q.selectedIndex == q.correctIndex) {
-        correct++;
-      }
-    }
-    final percent = (_questions.isEmpty)
-        ? 0
-        : ((correct / _questions.length) * 100).round();
-    setState(() => _score = percent);
-    _showSnack('You scored $percent%');
-  }
-
-  void _resetQuiz() {
-    setState(() {
-      for (final q in _questions) {
-        q.selectedIndex = null;
-      }
-      _score = null;
-    });
-  }
-
-  Widget _buildQuestionCard(MCQQuestion q, int idx) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF6EAD8),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFF6EAD8),
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'Quiz',
+          style: TextStyle(
+            color: Colors.black87,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings, color: Colors.white),
+            onPressed: () {},
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Q${idx + 1}. ${q.question}',
-              style: const TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 10),
-          for (int i = 0; i < q.options.length; i++) ...[
-            RadioListTile<int>(
-              title: Text(
-                '${String.fromCharCode(65 + i)}. ${q.options[i]}',
-                style: const TextStyle(fontSize: 14),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Last Quiz Card
+              _buildLastQuizCard(),
+              const SizedBox(height: 20),
+
+              // Take new quiz
+              const Text(
+                'Take a new quiz?',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              value: i,
-              groupValue: q.selectedIndex,
-              onChanged: (val) {
-                setState(() => q.selectedIndex = val);
-              },
-              activeColor: Colors.pink,
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-            ),
-          ],
-          if (_score != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              q.selectedIndex == q.correctIndex
-                  ? 'Correct'
-                  : 'Answer: ${String.fromCharCode(65 + q.correctIndex)}',
-              style: TextStyle(
-                color: q.selectedIndex == q.correctIndex
-                    ? Colors.green
-                    : Colors.red,
-                fontWeight: FontWeight.bold,
+              const SizedBox(height: 16),
+              _buildParameterRow('Total Time', '20 mins'),
+              _buildParameterRow('Total Marks', '15'),
+              const SizedBox(height: 16),
+
+              // Topic input
+              TextField(
+                controller: _topicController,
+                decoration: InputDecoration(
+                  hintText: 'Enter your topic',
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                ),
               ),
-            ),
-          ],
-        ],
+              const SizedBox(height: 10),
+              Center(
+                child: Text('or', style: TextStyle(color: Colors.grey[600])),
+              ),
+              const SizedBox(height: 10),
+
+              // Upload PDF
+              Center(
+                child: SizedBox(
+                  width: 200,
+                  child: ElevatedButton(
+                    onPressed: () => _showSnackBar('Upload PDF file'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.pinkAccent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      elevation: 6,
+                      shadowColor: Colors.black.withValues(alpha: 0.3),
+                    ),
+                    child: const Text(
+                      'Upload a PDF file',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Start Quiz
+              Center(
+                child: SizedBox(
+                  width: 200,
+                  child: ElevatedButton(
+                    onPressed: () => _showSnackBar('Start Quiz'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.pink,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      elevation: 6,
+                      shadowColor: Colors.black.withValues(alpha: 0.3),
+                    ),
+                    child: const Text(
+                      'Start Quiz',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 32),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -192,7 +170,7 @@ class _QuizScreenState extends State<QuizScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -201,38 +179,71 @@ class _QuizScreenState extends State<QuizScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Your Last Quiz',
-              style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold)),
+          const Text(
+            'Your Last Quiz',
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 12),
-          Text('Score',
-              style: TextStyle(
-                  color: Colors.pink[400],
-                  fontSize: 17,
-                  fontWeight: FontWeight.w600)),
+          Text(
+            'Programming',
+            style: TextStyle(
+              color: Colors.pink,
+              fontSize: 17,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Fundamentals of Computer Science',
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'a. What is software?',
+            style: TextStyle(color: Colors.black, fontSize: 14),
+          ),
+          Text(
+            'Ans: A set of instructions, data...',
+            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+          ),
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Latest result',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+              const Text(
+                'Your Score',
+                style: TextStyle(
+                  color: Colors.pink,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               Container(
                 width: 60,
                 height: 60,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: (_score ?? 0) >= 60 ? Colors.green : Colors.orange,
-                    width: 4,
-                  ),
+                  border: Border.all(color: Colors.green, width: 4),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.green.withValues(alpha: 0.2),
+                      blurRadius: 4,
+                      offset: const Offset(2, 2),
+                    ),
+                  ],
                 ),
-                child: Center(
+                child: const Center(
                   child: Text(
-                    _score == null ? '--' : '$_score%',
+                    '75%',
                     style: TextStyle(
-                      color: (_score ?? 0) >= 60 ? Colors.green : Colors.orange,
+                      color: Colors.green,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -245,225 +256,31 @@ class _QuizScreenState extends State<QuizScreen> {
     );
   }
 
-  Widget _buildParameterRow(String title, Widget trailing) {
+  Widget _buildParameterRow(String title, String value) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title,
-              style: const TextStyle(fontSize: 16, color: Colors.black)),
-          trailing,
-        ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF6EAD8),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Quiz',
-          style: TextStyle(
-            color: Colors.black87,
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
+          Text(
+            title,
+            style: const TextStyle(fontSize: 16, color: Colors.black),
           ),
-        ),
-      ),
-      body: SafeArea(
-        child: Stack(
-          children: [
-            SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildLastQuizCard(),
-                  const SizedBox(height: 20),
-
-                  const Text('Take a new quiz?',
-                      style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 16),
-
-                  _buildParameterRow(
-                    'Total Time',
-                    Row(
-                      children: const [
-                        Text('20 mins',
-                            style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.black)),
-                        SizedBox(width: 8),
-                        Icon(Icons.chevron_right, color: Colors.black),
-                      ],
-                    ),
-                  ),
-                  _buildParameterRow(
-                    'Total MCQs',
-                    SizedBox(
-                      width: 80,
-                      child: TextField(
-                        controller: _countController,
-                        keyboardType: TextInputType.number,
-                        textAlign: TextAlign.center,
-                        decoration: InputDecoration(
-                          isDense: true,
-                          contentPadding:
-                              const EdgeInsets.symmetric(vertical: 8),
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  TextField(
-                    controller: _topicController,
-                    decoration: InputDecoration(
-                      hintText: 'Enter your topic (optional label)',
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Center(
-                    child: Text('or', style: TextStyle(color: Colors.grey[600])),
-                  ),
-                  const SizedBox(height: 10),
-
-                  // Upload PDF
-                  Center(
-                    child: SizedBox(
-                      width: 220,
-                      child: ElevatedButton(
-                        onPressed: _loading ? null : _uploadPdf,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.pinkAccent,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          elevation: 6,
-                          shadowColor: Colors.black.withOpacity(0.3),
-                        ),
-                        child: const Text(
-                          'Upload a PDF file',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Start Quiz
-                  Center(
-                    child: SizedBox(
-                      width: 220,
-                      child: ElevatedButton(
-                        onPressed: _loading ? null : _startQuiz,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.pink,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          elevation: 6,
-                          shadowColor: Colors.black.withOpacity(0.3),
-                        ),
-                        child: const Text(
-                          'Start Quiz',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Quiz list
-                  if (_questions.isNotEmpty) ...[
-                    const Divider(),
-                    const SizedBox(height: 12),
-                    for (int i = 0; i < _questions.length; i++)
-                      _buildQuestionCard(_questions[i], i),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: _loading ? null : _submitQuiz,
-                            icon: const Icon(Icons.check),
-                            label: const Text('Submit'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              foregroundColor: Colors.white,
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 14),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _loading ? null : _resetQuiz,
-                            icon: const Icon(Icons.refresh),
-                            label: const Text('Reset'),
-                            style: OutlinedButton.styleFrom(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 14),
-                              side: const BorderSide(color: Colors.pink),
-                              foregroundColor: Colors.pink,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 32),
-                  ],
-                ],
+          Row(
+            children: [
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black,
+                ),
               ),
-            ),
-
-            if (_loading)
-              Container(
-                color: Colors.black.withOpacity(0.1),
-                child: const Center(child: CircularProgressIndicator()),
-              ),
-          ],
-        ),
+              const SizedBox(width: 8),
+              const Icon(Icons.chevron_right, color: Colors.black),
+            ],
+          ),
+        ],
       ),
     );
   }
