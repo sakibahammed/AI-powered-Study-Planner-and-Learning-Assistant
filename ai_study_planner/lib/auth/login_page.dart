@@ -28,8 +28,6 @@ class _LoginPageState extends State<LoginPage> {
 
       User user = userCredential.user!;
 
-      if (!mounted) return;
-
       if (!user.emailVerified) {
         // if email not verified, go to verification screen
         Navigator.pushReplacement(
@@ -46,8 +44,6 @@ class _LoginPageState extends State<LoginPage> {
         );
       }
     } on FirebaseAuthException catch (e) {
-      if (!mounted) return;
-
       String message;
       switch (e.code) {
         case 'user-not-found':
@@ -98,86 +94,74 @@ class _LoginPageState extends State<LoginPage> {
               Positioned(
                 top: -50,
                 left: -50,
-                child: _buildCircle(
-                  120,
-                  Colors.pinkAccent.withValues(alpha: 0.3),
-                ),
+                child: _buildCircle(120, Colors.pinkAccent.withOpacity(0.3)),
               ),
               Positioned(
                 bottom: -60,
                 right: -40,
                 child: _buildCircle(
                   150,
-                  Colors.deepOrangeAccent.withValues(alpha: 0.3),
+                  Colors.deepOrangeAccent.withOpacity(0.3),
                 ),
               ),
               Positioned(
                 top: 200,
                 right: -70,
-                child: _buildCircle(100, Colors.white.withValues(alpha: 0.15)),
+                child: _buildCircle(100, Colors.white.withOpacity(0.15)),
               ),
               Positioned(
                 bottom: 120,
                 left: -50,
-                child: _buildCircle(80, Colors.pink.withValues(alpha: 0.2)),
+                child: _buildCircle(80, Colors.pink.withOpacity(0.2)),
               ),
               Positioned(
                 top: 100,
                 left: 200,
                 child: _buildCircle(
                   60,
-                  Colors.deepOrangeAccent.withValues(alpha: 0.2),
+                  Colors.deepOrangeAccent.withOpacity(0.2),
                 ),
               ),
               Positioned(
                 bottom: 250,
                 right: 150,
-                child: _buildCircle(
-                  90,
-                  Colors.pinkAccent.withValues(alpha: 0.25),
-                ),
+                child: _buildCircle(90, Colors.pinkAccent.withOpacity(0.25)),
               ),
               Positioned(
                 top: 300,
                 left: 50,
-                child: _buildCircle(50, Colors.white.withValues(alpha: 0.1)),
+                child: _buildCircle(50, Colors.white.withOpacity(0.1)),
               ),
               Positioned(
                 bottom: 50,
                 left: 100,
                 child: _buildCircle(
                   70,
-                  Colors.deepOrangeAccent.withValues(alpha: 0.15),
+                  Colors.deepOrangeAccent.withOpacity(0.15),
                 ),
               ),
               Positioned(
                 top: 400,
                 right: 50,
-                child: _buildCircle(
-                  60,
-                  Colors.pinkAccent.withValues(alpha: 0.2),
-                ),
+                child: _buildCircle(60, Colors.pinkAccent.withOpacity(0.2)),
               ),
               Positioned(
                 bottom: 180,
                 left: 220,
-                child: _buildCircle(50, Colors.white.withValues(alpha: 0.1)),
+                child: _buildCircle(50, Colors.white.withOpacity(0.1)),
               ),
               Positioned(
                 top: 50,
                 right: 150,
                 child: _buildCircle(
                   80,
-                  Colors.deepOrangeAccent.withValues(alpha: 0.15),
+                  Colors.deepOrangeAccent.withOpacity(0.15),
                 ),
               ),
               Positioned(
                 bottom: 300,
                 left: 30,
-                child: _buildCircle(
-                  100,
-                  Colors.pinkAccent.withValues(alpha: 0.25),
-                ),
+                child: _buildCircle(100, Colors.pinkAccent.withOpacity(0.25)),
               ),
 
               // login form
@@ -190,11 +174,6 @@ class _LoginPageState extends State<LoginPage> {
                       height: 80,
                       width: 80,
                     ),
-                    const SizedBox(height: 3),
-                    const Text(
-                      "Study smart, not hard.",
-                      style: TextStyle(color: Colors.white, fontSize: 17),
-                    ),
                     const SizedBox(height: 10),
                     const Text(
                       "Welcome!",
@@ -204,7 +183,11 @@ class _LoginPageState extends State<LoginPage> {
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-
+                    const SizedBox(height: 5),
+                    const Text(
+                      "Study smart, not hard",
+                      style: TextStyle(color: Colors.white, fontSize: 17),
+                    ),
                     const SizedBox(height: 10),
                     MyTextFields(
                       controller: emailController,

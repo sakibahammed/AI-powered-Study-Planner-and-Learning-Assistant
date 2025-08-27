@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class MyTextFields extends StatelessWidget {
-  final TextEditingController controller;
+  final controller;
   final String hintText;
   final bool obscureText;
   final TextAlign alignment;
@@ -44,3 +44,4 @@ class MyTextFields extends StatelessWidget {
     );
   }
 }
+

@@ -73,7 +73,12 @@ class _PlannerScreenState extends State<PlannerScreen>
     setState(() {}); // Refresh UI to update statistics
   }
 
-
+  // Refresh statistics specifically
+  void _refreshStatistics() {
+    setState(() {
+      // Force rebuild to update statistics
+    });
+  }
 
   List<Task> _getEventsForDay(DateTime day) {
     return _events[DateTime(day.year, day.month, day.day)] ?? [];
@@ -82,7 +87,9 @@ class _PlannerScreenState extends State<PlannerScreen>
   // Calculate task statistics for the selected date
   int get _totalTasksCount {
     final tasksForSelectedDay = _getEventsForDay(_selectedDay);
-
+    print(
+      'Planner: Total tasks for $_selectedDay: ${tasksForSelectedDay.length}',
+    );
     return tasksForSelectedDay.length;
   }
 
@@ -91,7 +98,12 @@ class _PlannerScreenState extends State<PlannerScreen>
     final completedTasks = tasksForSelectedDay
         .where((task) => task.isCompleted)
         .toList();
-
+    print(
+      'Planner: Completed tasks for $_selectedDay: ${completedTasks.length}',
+    );
+    print(
+      'Planner: Completed task titles: ${completedTasks.map((t) => t.title).join(', ')}',
+    );
     return completedTasks.length;
   }
 
@@ -100,7 +112,12 @@ class _PlannerScreenState extends State<PlannerScreen>
     final inProgressTasks = tasksForSelectedDay
         .where((task) => task.isStarted && !task.isCompleted)
         .toList();
-
+    print(
+      'Planner: In progress tasks for $_selectedDay: ${inProgressTasks.length}',
+    );
+    print(
+      'Planner: In progress task titles: ${inProgressTasks.map((t) => t.title).join(', ')}',
+    );
     return inProgressTasks.length;
   }
 
@@ -109,7 +126,10 @@ class _PlannerScreenState extends State<PlannerScreen>
     final pendingTasks = tasksForSelectedDay
         .where((task) => !task.isStarted && !task.isCompleted)
         .toList();
-
+    print('Planner: Pending tasks for $_selectedDay: ${pendingTasks.length}');
+    print(
+      'Planner: Pending task titles: ${pendingTasks.map((t) => t.title).join(', ')}',
+    );
     return pendingTasks.length;
   }
 
@@ -150,21 +170,36 @@ class _PlannerScreenState extends State<PlannerScreen>
   Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.all(16),
+      // decoration: BoxDecoration(
+      //   gradient: LinearGradient(
+      //     colors: AppColors.primaryGradient,
+      //     begin: Alignment.topLeft,
+      //     end: Alignment.bottomRight,
+      //   ),
+      //   borderRadius: const BorderRadius.only(
+      //     bottomLeft: Radius.circular(24),
+      //     bottomRight: Radius.circular(24),
+      //   ),
+      // ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.arrow_back, color: Colors.black87),
-          ),
-          const Text(
-            'Planner',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
+            icon: const Icon(
+              Icons.arrow_back,
+              color: Color.fromARGB(255, 0, 0, 0),
             ),
           ),
+          const SizedBox(width: 8),
+          const Text(
+            'Study Planner',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Color.fromARGB(255, 18, 1, 1),
+            ),
+          ),
+          const Spacer(),
           IconButton(
             onPressed: () {},
             icon: const Icon(Icons.settings, color: Colors.white),
@@ -201,7 +236,7 @@ class _PlannerScreenState extends State<PlannerScreen>
           });
           // Notify dashboard about the selected date
           widget.onDateSelected?.call(selectedDay);
-
+          print('Planner: Date selected: $selectedDay, statistics will update');
         },
         onFormatChanged: (format) {
           setState(() {
@@ -419,7 +454,7 @@ class _PlannerScreenState extends State<PlannerScreen>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: _getTaskStatusColor(task).withValues(alpha: 0.1),
+              color: _getTaskStatusColor(task).withOpacity(0.1),
               borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
             ),
             child: Row(
@@ -563,10 +598,10 @@ class _PlannerScreenState extends State<PlannerScreen>
         style: ElevatedButton.styleFrom(
           backgroundColor: isActive
               ? color
-              : (isDisabled ? color.withValues(alpha: 0.3) : color.withValues(alpha: 0.1)),
-                  foregroundColor: isActive
-            ? Colors.white
-            : (isDisabled ? color.withValues(alpha: 0.6) : color.withValues(alpha: 0.8)),
+              : (isDisabled ? color.withOpacity(0.3) : color.withOpacity(0.1)),
+          foregroundColor: isActive
+              ? Colors.white
+              : (isDisabled ? color.withOpacity(0.6) : color.withOpacity(0.8)),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
@@ -583,8 +618,8 @@ class _PlannerScreenState extends State<PlannerScreen>
                 color: isActive
                     ? Colors.white
                     : (isDisabled
-                          ? color.withValues(alpha: 0.6)
-                          : color.withValues(alpha: 0.8)),
+                          ? color.withOpacity(0.6)
+                          : color.withOpacity(0.8)),
               ),
             ),
           ],
@@ -679,15 +714,13 @@ class _PlannerScreenState extends State<PlannerScreen>
       setState(() {});
 
       // Show success message
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Task "${task.title}" deleted successfully'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Task "${task.title}" deleted successfully'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
       // Notify parent that a task was deleted
       widget.onTaskAdded?.call();
     }
@@ -715,12 +748,19 @@ class _PlannerScreenState extends State<PlannerScreen>
         },
         onTaskDeleted: (taskId) async {
           await _taskService.removeTask(taskId);
-          if (mounted) {
-            _loadTasks();
-            setState(() {});
-            // Notify parent that a task was deleted
-            widget.onTaskAdded?.call();
-          }
+          _loadTasks();
+          setState(() {});
+
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Task deleted successfully'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+          // Notify parent that a task was deleted
+          widget.onTaskAdded?.call();
         },
       ),
     );
@@ -734,12 +774,10 @@ class _PlannerScreenState extends State<PlannerScreen>
 
     if (result != null) {
       await _taskService.addTask(result);
-      if (mounted) {
-        _loadTasks(); // Reload tasks from service
-        setState(() {});
-        // Notify parent that a task was added
-        widget.onTaskAdded?.call();
-      }
+      _loadTasks(); // Reload tasks from service
+      setState(() {});
+      // Notify parent that a task was added
+      widget.onTaskAdded?.call();
     }
   }
 }
