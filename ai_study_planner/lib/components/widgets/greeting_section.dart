@@ -7,10 +7,10 @@ class GreetingSection extends StatefulWidget {
   const GreetingSection({super.key});
 
   @override
-  GreetingSectionState createState() => GreetingSectionState();
+  _GreetingSectionState createState() => _GreetingSectionState();
 }
 
-class GreetingSectionState extends State<GreetingSection> {
+class _GreetingSectionState extends State<GreetingSection> {
   String userName = 'User';
   bool isLoading = true;
 
@@ -29,39 +29,31 @@ class GreetingSectionState extends State<GreetingSection> {
             .doc(user.uid)
             .get();
 
-        if (mounted) {
-          if (userData.exists && userData.data()?['firstName'] != null) {
-            setState(() {
-              userName = userData.data()!['firstName'];
-              isLoading = false;
-            });
-          } else {
-            setState(() {
-              isLoading = false;
-            });
-          }
-        }
-      } else {
-        if (mounted) {
+        if (userData.exists && userData.data()?['firstName'] != null) {
+          setState(() {
+            userName = userData.data()!['firstName'];
+            isLoading = false;
+          });
+        } else {
           setState(() {
             isLoading = false;
           });
         }
-      }
-    } catch (e) {
-      if (mounted) {
+      } else {
         setState(() {
           isLoading = false;
         });
       }
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
   // Method to refresh username - can be called from parent widget
   void refreshUserName() {
-    if (mounted) {
-      _loadUserName();
-    }
+    _loadUserName();
   }
 
   @override
@@ -76,9 +68,7 @@ class GreetingSectionState extends State<GreetingSection> {
               MaterialPageRoute(builder: (context) => SettingsScreen()),
             );
             // Refresh username when returning from settings
-            if (mounted) {
-              _loadUserName();
-            }
+            _loadUserName();
           },
           child: CircleAvatar(
             backgroundColor: Colors.deepOrangeAccent,

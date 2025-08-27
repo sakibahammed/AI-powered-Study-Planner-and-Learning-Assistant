@@ -9,7 +9,6 @@ import 'features/flashcard/flashcard_screen.dart';
 import 'features/planner/planner_screen.dart';
 import 'features/quiz/quiz_screen.dart';
 import 'features/chat/chatbot_screen.dart';
-import 'features/progress/progress_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final DateTime? selectedDate;
@@ -218,7 +217,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: Colors.black.withOpacity(0.1),
             blurRadius: 10,
             offset: Offset(0, -2),
           ),
@@ -258,11 +257,6 @@ class _DashboardScreenState extends State<DashboardScreen>
                 label: 'Studybot',
                 onTap: () => _navigateToScreen(ChatbotScreen()),
               ),
-              _buildNavItem(
-                icon: Icons.trending_up,
-                label: 'Progress',
-                onTap: () => _navigateToScreen(ProgressScreen()),
-              ),
             ],
           ),
         ),
@@ -283,7 +277,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           Container(
             padding: EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.pink.withValues(alpha: 0.1),
+              color: Colors.pink.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: Colors.pink, size: 24),

@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:ai_study_planner/theme/app_colors.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:file_picker/file_picker.dart';
@@ -114,28 +113,18 @@ class _ChatPageState extends State<ChatPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black87),
+          icon: Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Studybot',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-            fontSize: 20,
-          ),
+          'Ask Studybot',
+          style: TextStyle(fontWeight: FontWeight.w900, color: Colors.black87),
         ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.settings, color: Colors.white),
-            onPressed: () {},
-          ),
-        ],
       ),
-      backgroundColor: AppColors.background,
+      backgroundColor: Color(0xFFF6EAD8), // keep original background
       body: Column(
         children: [
           Expanded(child: buildMessageList()),
@@ -160,7 +149,7 @@ class _ChatPageState extends State<ChatPage> {
         final allDocs = snapshot.data!.docs;
 
         final filteredDocs = allDocs.where((doc) {
-          final data = doc.data();
+          final data = doc.data() as Map<String, dynamic>;
           final senderID = data['senderID'] as String? ?? '';
           final receiverID = data['receiverID'] as String? ?? '';
           final currentUserID = firebaseAuth.currentUser!.uid;
@@ -257,7 +246,7 @@ class _ChatPageState extends State<ChatPage> {
                   border: Border.all(color: Colors.grey.shade300),
                   boxShadow: [
                     BoxShadow(
-                                                    color: Colors.black.withValues(alpha: 0.05),
+                      color: Colors.black.withOpacity(0.05),
                       blurRadius: 5,
                       offset: Offset(0, 2),
                     ),
