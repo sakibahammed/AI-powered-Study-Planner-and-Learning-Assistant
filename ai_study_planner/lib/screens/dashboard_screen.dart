@@ -178,14 +178,6 @@ class _DashboardScreenState extends State<DashboardScreen>
                     GreetingSection(),
                     const SizedBox(height: 20),
                     StatCard(
-                      title: "Your Average Score",
-                      value: "68",
-                      subtitle: "Quizzes taken: 12",
-                      percentage: 0.68,
-                      percentageText: "68.0%",
-                    ),
-                    const SizedBox(height: 16),
-                    StatCard(
                       title: _getDateTitle(),
                       value: totalTasksCount == 0
                           ? "0"

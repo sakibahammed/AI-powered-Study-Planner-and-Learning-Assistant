@@ -161,8 +161,8 @@ class NotificationService {
       // Schedule using zonedSchedule (same as super simple but scheduled)
       await _notifications.zonedSchedule(
         task.id.hashCode,
-        'Get ready to crush ${task.title} and grow! 💪',
-        'Your task "${task.title}" starts in 5 minutes. Time to shine! ✨',
+        '🚀 Time to tackle: ${task.title}!',
+        'Your "${task.title}" task starts in 5 minutes. Let\'s get it done! 💪✨',
         tz.TZDateTime.from(notificationTime, tz.local),
         details,
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
