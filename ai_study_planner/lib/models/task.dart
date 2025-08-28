@@ -6,6 +6,9 @@ class Task {
   final bool isCompleted;
   final bool isStarted;
   final String category;
+  final DateTime? startTime;
+  final DateTime? completionTime;
+  final Duration? completionDuration;
 
   Task({
     required this.id,
@@ -15,6 +18,9 @@ class Task {
     this.isCompleted = false,
     this.isStarted = false,
     required this.category,
+    this.startTime,
+    this.completionTime,
+    this.completionDuration,
   });
 
   Task copyWith({
@@ -25,6 +31,9 @@ class Task {
     bool? isCompleted,
     bool? isStarted,
     String? category,
+    DateTime? startTime,
+    DateTime? completionTime,
+    Duration? completionDuration,
   }) {
     return Task(
       id: id ?? this.id,
@@ -34,6 +43,9 @@ class Task {
       isCompleted: isCompleted ?? this.isCompleted,
       isStarted: isStarted ?? this.isStarted,
       category: category ?? this.category,
+      startTime: startTime ?? this.startTime,
+      completionTime: completionTime ?? this.completionTime,
+      completionDuration: completionDuration ?? this.completionDuration,
     );
   }
 
@@ -46,6 +58,9 @@ class Task {
       'isCompleted': isCompleted,
       'isStarted': isStarted,
       'category': category,
+      'startTime': startTime?.toIso8601String(),
+      'completionTime': completionTime?.toIso8601String(),
+      'completionDuration': completionDuration?.inMilliseconds,
     };
   }
 
@@ -58,6 +73,15 @@ class Task {
       isCompleted: map['isCompleted'] ?? false,
       isStarted: map['isStarted'] ?? false,
       category: map['category'],
+      startTime: map['startTime'] != null
+          ? DateTime.parse(map['startTime'])
+          : null,
+      completionTime: map['completionTime'] != null
+          ? DateTime.parse(map['completionTime'])
+          : null,
+      completionDuration: map['completionDuration'] != null
+          ? Duration(milliseconds: map['completionDuration'])
+          : null,
     );
   }
 }

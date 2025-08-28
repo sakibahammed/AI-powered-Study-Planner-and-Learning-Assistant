@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'task.dart';
 import '../services/notification_service.dart';
 import '../services/streak_service.dart';
+import '../services/timing_service.dart';
 
 class TaskService {
   static final TaskService _instance = TaskService._internal();
@@ -128,6 +129,14 @@ class TaskService {
         } catch (e) {
           print('❌ Error earning streak: $e');
         }
+
+        // Record completion timing
+        try {
+          await TimingService.instance.recordTaskCompletion(taskId);
+          print('⏱️ Task completion time recorded for: ${task.title}');
+        } catch (e) {
+          print('❌ Error recording task completion time: $e');
+        }
       }
     }
   }
@@ -142,6 +151,16 @@ class TaskService {
         'TaskService: Updated task ${task.title} start status to $isStarted',
       );
       await _saveTasksToStorage();
+
+      // Record timing when task is started
+      if (isStarted) {
+        try {
+          await TimingService.instance.recordTaskStart(taskId);
+          print('⏱️ Task start time recorded for: ${task.title}');
+        } catch (e) {
+          print('❌ Error recording task start time: $e');
+        }
+      }
     }
   }
 
