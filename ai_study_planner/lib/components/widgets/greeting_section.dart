@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../screens/settings_screen.dart';
+import 'profile_avatar.dart';
 
 class GreetingSection extends StatefulWidget {
   const GreetingSection({super.key});
@@ -80,10 +81,10 @@ class GreetingSectionState extends State<GreetingSection> {
               _loadUserName();
             }
           },
-          child: CircleAvatar(
-            backgroundColor: Colors.deepOrangeAccent,
-            radius: 24,
-            child: Icon(Icons.person, color: Colors.white),
+          child: ProfileAvatar(
+            size: 48,
+            shape: BoxShape.circle,
+            showBorder: true,
           ),
         ),
         const SizedBox(width: 12),

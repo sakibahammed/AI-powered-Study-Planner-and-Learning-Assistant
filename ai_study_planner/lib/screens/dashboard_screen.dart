@@ -5,6 +5,7 @@ import 'dart:async';
 import '../components/widgets/greeting_section.dart';
 import '../components/widgets/stat_card.dart';
 import '../components/widgets/upcoming_section.dart';
+import '../components/widgets/profile_avatar.dart';
 import '../models/task.dart';
 import '../models/task_service.dart';
 import 'features/flashcard/flashcard_screen.dart';

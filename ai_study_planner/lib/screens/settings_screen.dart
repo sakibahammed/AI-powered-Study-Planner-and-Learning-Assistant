@@ -1,9 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../auth/login_page.dart';
+import '../services/profile_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -13,73 +13,130 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class SettingsScreenState extends State<SettingsScreen> {
-  File? _selectedImage;
-  String? _imageUrl;
+  final ProfileService _profileService = ProfileService.instance;
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _loadUserData();
+    _initializeProfile();
   }
 
-  Future<void> _loadUserData() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      // Load user data from Firestore
-      final userData = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
-
-      if (userData.exists && userData.data()?['profileImage'] != null) {
-        setState(() {
-          _imageUrl = userData.data()!['profileImage'];
-        });
-      }
-    }
+  Future<void> _initializeProfile() async {
+    await _profileService.initialize();
+    setState(() {});
   }
 
-  Future<void> _pickImage() async {
+  Future<void> _showImageSourceDialog() async {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Choose Image Source'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(Icons.photo_library, color: Colors.blue),
+                title: Text('Gallery'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImageFromGallery();
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.camera_alt, color: Colors.green),
+                title: Text('Camera'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _takeImageWithCamera();
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickImageFromGallery() async {
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.image,
-        allowMultiple: false,
-      );
-
-      if (result != null && result.files.single.path != null) {
-        setState(() {
-          _selectedImage = File(result.files.single.path!);
-          _isLoading = true;
-        });
-
-        // Here you would typically upload to Firebase Storage
-        // For now, we'll just save the local file path
-        await _saveImageToFirestore();
-
-        setState(() {
-          _isLoading = false;
-        });
+      final File? imageFile = await _profileService.pickImageFromGallery();
+      if (imageFile != null) {
+        setState(() {});
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Profile image updated successfully!')),
+        );
       }
     } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error updating profile image: $e')),
+      );
+    } finally {
       setState(() {
         _isLoading = false;
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
     }
   }
 
-  Future<void> _saveImageToFirestore() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null && _selectedImage != null) {
-      // In a real app, you'd upload to Firebase Storage first
-      // For now, we'll save the local path
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).update(
-        {'profileImage': _selectedImage!.path},
+  Future<void> _takeImageWithCamera() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final File? imageFile = await _profileService.takeImageWithCamera();
+      if (imageFile != null) {
+        setState(() {});
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Profile image updated successfully!')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error updating profile image: $e')),
       );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
+  }
+
+  Future<void> _removeProfileImage() async {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Remove Profile Image'),
+          content: Text('Are you sure you want to remove your profile image?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                await _profileService.removeProfileImage();
+                setState(() {});
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Profile image removed successfully!'),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: Text('Remove'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _showEditProfileDialog() async {
@@ -197,30 +254,25 @@ class SettingsScreenState extends State<SettingsScreen> {
               child: Column(
                 children: [
                   GestureDetector(
-                    onTap: _pickImage,
+                    onTap: _showImageSourceDialog,
                     child: Stack(
                       children: [
-                        CircleAvatar(
-                          radius: 50,
-                          backgroundColor: Colors.deepOrangeAccent,
-                          backgroundImage: _selectedImage != null
-                              ? FileImage(_selectedImage!)
-                              : (_imageUrl != null
-                                    ? NetworkImage(_imageUrl!) as ImageProvider
-                                    : null),
-                          child: _selectedImage == null && _imageUrl == null
-                              ? Icon(
-                                  Icons.person,
-                                  size: 50,
-                                  color: Colors.white,
-                                )
-                              : null,
+                        // Profile Image
+                        _profileService.getProfileImageWidget(
+                          size: 100,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.blue.withOpacity(0.3),
+                            width: 3,
+                          ),
                         ),
+
+                        // Loading Overlay
                         if (_isLoading)
                           Positioned.fill(
                             child: Container(
                               decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: .5),
+                                color: Colors.black.withOpacity(0.5),
                                 shape: BoxShape.circle,
                               ),
                               child: Center(
@@ -230,14 +282,23 @@ class SettingsScreenState extends State<SettingsScreen> {
                               ),
                             ),
                           ),
+
+                        // Camera Icon
                         Positioned(
                           bottom: 0,
                           right: 0,
                           child: Container(
-                            padding: EdgeInsets.all(4),
+                            padding: EdgeInsets.all(8),
                             decoration: BoxDecoration(
                               color: Colors.blue,
                               shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.blue.withOpacity(0.3),
+                                  blurRadius: 8,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
                             ),
                             child: Icon(
                               Icons.camera_alt,
@@ -249,10 +310,39 @@ class SettingsScreenState extends State<SettingsScreen> {
                       ],
                     ),
                   ),
+
                   SizedBox(height: 16),
+
+                  // Profile Image Actions
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      TextButton.icon(
+                        onPressed: _showImageSourceDialog,
+                        icon: Icon(Icons.edit, size: 16),
+                        label: Text('Change Photo'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.blue,
+                        ),
+                      ),
+                      if (_profileService.hasProfileImage) ...[
+                        SizedBox(width: 16),
+                        TextButton.icon(
+                          onPressed: _removeProfileImage,
+                          icon: Icon(Icons.delete, size: 16),
+                          label: Text('Remove'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.red,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+
+                  SizedBox(height: 8),
                   Text(
                     'Tap to change profile picture',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
                   ),
                 ],
               ),
