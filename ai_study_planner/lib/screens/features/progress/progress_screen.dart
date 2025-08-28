@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../theme/app_colors.dart';
+import '../../../services/streak_service.dart';
+import '../../../models/streak.dart';
 
 class ProgressScreen extends StatefulWidget {
   const ProgressScreen({super.key});
@@ -9,6 +11,31 @@ class ProgressScreen extends StatefulWidget {
 }
 
 class _ProgressScreenState extends State<ProgressScreen> {
+  final StreakService _streakService = StreakService.instance;
+  Streak? _currentStreak;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStreakData();
+  }
+
+  Future<void> _loadStreakData() async {
+    try {
+      await _streakService.initialize();
+      setState(() {
+        _currentStreak = _streakService.currentStreak;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading streak data: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -30,7 +57,12 @@ class _ProgressScreenState extends State<ProgressScreen> {
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.settings, color: Colors.white),
+            icon: Icon(Icons.refresh, color: Colors.black87),
+            onPressed: () => _loadStreakData(),
+            tooltip: 'Refresh streak data',
+          ),
+          IconButton(
+            icon: Icon(Icons.settings, color: Colors.black87),
             onPressed: () {},
           ),
         ],
@@ -67,6 +99,30 @@ class _ProgressScreenState extends State<ProgressScreen> {
   }
 
   Widget _buildStreakCard() {
+    if (_isLoading) {
+      return Container(
+        padding: EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Colors.orange[400]!, Colors.deepOrange[400]!],
+          ),
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+          ),
+        ),
+      );
+    }
+
+    final streak = _currentStreak ?? Streak.initial();
+    final canEarnToday = _streakService.canEarnStreakToday();
+    final streakMessage = streak.getStreakMessage();
+    final streakEmoji = streak.getStreakEmoji();
+
     return Container(
       padding: EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -84,52 +140,97 @@ class _ProgressScreenState extends State<ProgressScreen> {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '$streakEmoji Daily Streak',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      '${streak.currentStreak} Days',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      streakMessage,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                  Icons.local_fire_department,
+                  color: Colors.white,
+                  size: 32,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 16),
+          // Streak status indicator
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
+                Icon(
+                  canEarnToday ? Icons.check_circle : Icons.schedule,
+                  color: Colors.white,
+                  size: 16,
+                ),
+                SizedBox(width: 8),
                 Text(
-                  '🔥 Daily Streak',
+                  canEarnToday
+                      ? 'Streak available today!'
+                      : 'Streak earned today',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  '7 Days',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'Keep it up! You\'re on fire!',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.9),
-                    fontSize: 14,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
             ),
           ),
-          Container(
-            padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(16),
+          if (streak.longestStreak > 0) ...[
+            SizedBox(height: 12),
+            Text(
+              '🏆 Longest streak: ${streak.longestStreak} days',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.8),
+                fontSize: 12,
+              ),
             ),
-            child: Icon(
-              Icons.local_fire_department,
-              color: Colors.white,
-              size: 32,
-            ),
-          ),
+          ],
         ],
       ),
     );
@@ -567,4 +668,3 @@ class _ProgressScreenState extends State<ProgressScreen> {
     );
   }
 }
-

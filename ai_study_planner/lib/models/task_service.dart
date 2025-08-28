@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'task.dart';
 import '../services/notification_service.dart';
+import '../services/streak_service.dart';
 
 class TaskService {
   static final TaskService _instance = TaskService._internal();
@@ -118,6 +119,16 @@ class TaskService {
         'TaskService: Updated task ${task.title} completion to $isCompleted',
       );
       await _saveTasksToStorage();
+
+      // Earn streak if task is completed
+      if (isCompleted) {
+        try {
+          await StreakService.instance.earnStreakForToday();
+          print('🔥 Streak earned for completing task: ${task.title}');
+        } catch (e) {
+          print('❌ Error earning streak: $e');
+        }
+      }
     }
   }
 
