@@ -212,11 +212,18 @@ class TodayTasksModalState extends State<TodayTasksModal> {
   }
 
   Widget _buildTasksList() {
+    // Sort tasks: pending first, completed last
+    final sortedTasks = List<Task>.from(tasks)
+      ..sort((a, b) {
+        if (a.isCompleted == b.isCompleted) return 0;
+        return a.isCompleted ? 1 : -1; // false (pending) comes first
+      });
+
     return ListView.builder(
       padding: EdgeInsets.all(20),
-      itemCount: tasks.length,
+      itemCount: sortedTasks.length,
       itemBuilder: (context, index) {
-        final task = tasks[index];
+        final task = sortedTasks[index];
         return AnimatedContainer(
           duration: Duration(milliseconds: 300),
           margin: EdgeInsets.only(bottom: 16),
